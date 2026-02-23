@@ -1,0 +1,107 @@
+// Editor-specific styles
+
+.editor-main {
+  position: relative;
+  overflow-y: auto;
+}
+
+// Canvas area styling
+.editor-canvas {
+  padding: 20px;
+  min-height: calc(100vh - 64px);
+  transition: padding 0.3s ease;
+
+  &--tablet {
+    padding: 20px calc((100% - 768px) / 2);
+  }
+
+  &--mobile {
+    padding: 20px calc((100% - 375px) / 2);
+  }
+}
+
+// Block wrapper edit mode
+.block-wrapper {
+  position: relative;
+  transition: outline 0.15s ease;
+
+  &:hover {
+    outline: 2px solid rgba(25, 118, 210, 0.3);
+    outline-offset: -2px;
+  }
+
+  &--active {
+    outline: 2px solid rgb(25, 118, 210) !important;
+    outline-offset: -2px;
+  }
+}
+
+// Block controls overlay
+.block-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 0 0 0 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+
+  .block-wrapper:hover &,
+  .block-wrapper--active & {
+    opacity: 1;
+  }
+}
+
+// Add block button
+.add-block-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  margin: 4px 0;
+  border: 2px dashed transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0;
+
+  &:hover {
+    border-color: rgb(25, 118, 210);
+    background: rgba(25, 118, 210, 0.05);
+    opacity: 1;
+  }
+}
+
+.block-wrapper:hover + .add-block-button,
+.add-block-button:hover {
+  opacity: 1;
+}
+
+// Empty canvas state
+.empty-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  border: 2px dashed #e0e0e0;
+  border-radius: 12px;
+  margin: 40px;
+  padding: 40px;
+  text-align: center;
+}
+
+// Drag ghost styling
+.sortable-ghost {
+  opacity: 0.4;
+  background: rgba(25, 118, 210, 0.1);
+}
+
+.sortable-drag {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}

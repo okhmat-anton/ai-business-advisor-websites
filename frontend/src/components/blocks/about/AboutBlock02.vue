@@ -1,0 +1,30 @@
+<template>
+  <!-- About: description with counters -->
+  <section class="about-block-02" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
+    <div class="about-container">
+      <h2>{{ content.title }}</h2>
+      <p class="about-desc">{{ content.text }}</p>
+      <div class="counters">
+        <div v-for="(counter, i) in content.counters" :key="i" class="counter-item">
+          <span class="counter-value">{{ counter.value }}</span>
+          <span class="counter-label">{{ counter.label }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
+defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+</script>
+
+<style scoped>
+.about-block-02 { width: 100%; }
+.about-container { max-width: 1000px; margin: 0 auto; text-align: center; padding: 0 40px; }
+.about-container h2 { font-size: 36px; font-weight: 700; margin-bottom: 16px; color: #212121; }
+.about-desc { font-size: 18px; color: #666; max-width: 700px; margin: 0 auto 50px; line-height: 1.6; }
+.counters { display: flex; justify-content: center; gap: 60px; flex-wrap: wrap; }
+.counter-item { display: flex; flex-direction: column; align-items: center; }
+.counter-value { font-size: 42px; font-weight: 700; color: #1976D2; }
+.counter-label { font-size: 14px; color: #888; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+</style>

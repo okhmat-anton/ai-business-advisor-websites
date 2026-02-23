@@ -1,0 +1,77 @@
+// Block component shared styles
+
+// Common block container
+.block-section {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+// Block inner container with max-width
+.block-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+// Full-width block (covers, etc.)
+.block-fullwidth {
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+}
+
+// Block overlay (for cover blocks)
+.block-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+// Block content above overlay
+.block-content {
+  position: relative;
+  z-index: 2;
+}
+
+// Common form styling within blocks
+.block-form {
+  .v-text-field {
+    margin-bottom: 12px;
+  }
+
+  .v-btn {
+    margin-top: 8px;
+  }
+}
+
+// Responsive block adjustments
+@media (max-width: 768px) {
+  .block-container {
+    padding: 0 16px;
+  }
+
+  .block-section {
+    // Reduce large paddings on mobile
+    &[style*="padding-top: 8"],
+    &[style*="padding-top: 9"],
+    &[style*="padding-top: 10"] {
+      padding-top: 60px !important;
+    }
+
+    &[style*="padding-bottom: 8"],
+    &[style*="padding-bottom: 9"],
+    &[style*="padding-bottom: 10"] {
+      padding-bottom: 60px !important;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .block-container {
+    padding: 0 12px;
+  }
+}

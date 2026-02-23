@@ -1,0 +1,281 @@
+<template>
+  <v-navigation-drawer
+    v-model="show"
+    location="right"
+    width="360"
+    temporary
+    class="content-panel"
+  >
+    <div class="d-flex align-center pa-3">
+      <span class="text-subtitle-1 font-weight-medium">Edit Content</span>
+      <v-spacer />
+      <v-btn icon variant="text" size="small" @click="close">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </div>
+
+    <v-divider />
+
+    <div v-if="!activeBlock" class="pa-6 text-center text-grey">
+      <v-icon size="48" class="mb-2">mdi-pencil-off</v-icon>
+      <p>Select a block to edit content</p>
+    </div>
+
+    <div v-else class="pa-4">
+      <!-- Dynamic content fields based on block type -->
+      <div class="mb-2 text-caption text-grey-darken-1">
+        Editing: {{ activeBlock.type }} block
+      </div>
+
+      <!-- Generic content fields: iterate over content keys -->
+      <template v-for="(value, key) in activeBlock.content" :key="key">
+        <!-- Skip complex objects for now, show simple fields -->
+        <template v-if="isSimpleField(key, value)">
+          <!-- URL fields -->
+          <v-text-field
+            v-if="isUrlField(key as string)"
+            :model-value="value as string"
+            @update:model-value="updateContent(key as string, $event)"
+            :label="formatLabel(key as string)"
+            density="compact"
+            variant="outlined"
+            hide-details
+            class="mb-3"
+            prepend-inner-icon="mdi-link"
+          />
+
+          <!-- Color fields -->
+          <v-text-field
+            v-else-if="isColorField(key as string)"
+            :model-value="value as string"
+            @update:model-value="updateContent(key as string, $event)"
+            :label="formatLabel(key as string)"
+            density="compact"
+            variant="outlined"
+            hide-details
+            class="mb-3"
+            prepend-inner-icon="mdi-palette"
+          >
+            <template #append-inner>
+              <div
+                class="color-swatch"
+                :style="{ background: (value as string) || '#ffffff' }"
+              />
+            </template>
+          </v-text-field>
+
+          <!-- Textarea for long text -->
+          <v-textarea
+            v-else-if="isLongText(key as string, value as string)"
+            :model-value="value as string"
+            @update:model-value="updateContent(key as string, $event)"
+            :label="formatLabel(key as string)"
+            density="compact"
+            variant="outlined"
+            hide-details
+            class="mb-3"
+            rows="3"
+            auto-grow
+          />
+
+          <!-- Number fields -->
+          <v-text-field
+            v-else-if="typeof value === 'number'"
+            :model-value="value"
+            @update:model-value="updateContent(key as string, Number($event))"
+            :label="formatLabel(key as string)"
+            density="compact"
+            variant="outlined"
+            hide-details
+            class="mb-3"
+            type="number"
+          />
+
+          <!-- Boolean fields -->
+          <v-switch
+            v-else-if="typeof value === 'boolean'"
+            :model-value="value"
+            @update:model-value="updateContent(key as string, $event)"
+            :label="formatLabel(key as string)"
+            color="primary"
+            density="compact"
+            hide-details
+            class="mb-3"
+          />
+
+          <!-- Default: text field -->
+          <v-text-field
+            v-else
+            :model-value="value as string"
+            @update:model-value="updateContent(key as string, $event)"
+            :label="formatLabel(key as string)"
+            density="compact"
+            variant="outlined"
+            hide-details
+            class="mb-3"
+          />
+        </template>
+
+        <!-- Array fields (items, links, etc.) -->
+        <template v-else-if="Array.isArray(value)">
+          <div class="text-subtitle-2 mb-2">{{ formatLabel(key as string) }}</div>
+          <v-card
+            v-for="(item, idx) in (value as any[])"
+            :key="idx"
+            variant="outlined"
+            class="pa-3 mb-2"
+          >
+            <div class="d-flex align-center mb-2">
+              <span class="text-caption text-grey">Item {{ idx + 1 }}</span>
+              <v-spacer />
+              <v-btn icon variant="text" size="x-small" @click="removeArrayItem(key as string, idx)">
+                <v-icon size="16">mdi-delete-outline</v-icon>
+              </v-btn>
+            </div>
+            <template v-if="typeof item === 'object' && item !== null">
+              <template v-for="(subVal, subKey) in item" :key="subKey">
+                <v-text-field
+                  v-if="typeof subVal === 'string' || typeof subVal === 'number'"
+                  :model-value="subVal"
+                  @update:model-value="updateArrayItemField(key as string, idx, subKey as string, $event)"
+                  :label="formatLabel(subKey as string)"
+                  density="compact"
+                  variant="outlined"
+                  hide-details
+                  class="mb-2"
+                />
+              </template>
+            </template>
+            <v-text-field
+              v-else
+              :model-value="item"
+              @update:model-value="updateArrayItem(key as string, idx, $event)"
+              :label="`Value`"
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+          </v-card>
+          <v-btn
+            variant="tonal"
+            size="small"
+            color="primary"
+            block
+            class="mb-4"
+            @click="addArrayItem(key as string)"
+          >
+            <v-icon left size="16">mdi-plus</v-icon>
+            Add Item
+          </v-btn>
+        </template>
+      </template>
+    </div>
+  </v-navigation-drawer>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useEditorStore } from '@/stores/editorStore'
+import { useUiStore } from '@/stores/uiStore'
+import { deepClone } from '@/utils/helpers'
+
+const editorStore = useEditorStore()
+const uiStore = useUiStore()
+
+const show = computed({
+  get: () => uiStore.showContentPanel,
+  set: (val: boolean) => {
+    if (!val) uiStore.closeContentPanel()
+  },
+})
+
+const activeBlock = computed(() => {
+  if (!editorStore.activeBlockId) return null
+  return editorStore.blocks.find((b) => b.id === editorStore.activeBlockId) || null
+})
+
+function isSimpleField(_key: string, value: unknown): boolean {
+  return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+}
+
+function isUrlField(key: string): boolean {
+  const urlKeys = ['url', 'href', 'link', 'src', 'image', 'imageUrl', 'backgroundImage', 'videoUrl']
+  return urlKeys.some((k) => key.toLowerCase().includes(k.toLowerCase()))
+}
+
+function isColorField(key: string): boolean {
+  return key.toLowerCase().includes('color')
+}
+
+function isLongText(key: string, value: string): boolean {
+  const longKeys = ['description', 'text', 'subtitle', 'content', 'body', 'paragraph']
+  return longKeys.some((k) => key.toLowerCase().includes(k)) || (typeof value === 'string' && value.length > 80)
+}
+
+function formatLabel(key: string): string {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/[_-]/g, ' ')
+    .replace(/^./, (s) => s.toUpperCase())
+    .trim()
+}
+
+function updateContent(key: string, value: any) {
+  if (!activeBlock.value) return
+  editorStore.updateBlockContent(activeBlock.value.id, { [key]: value })
+}
+
+function updateArrayItem(key: string, index: number, value: any) {
+  if (!activeBlock.value) return
+  const arr = deepClone(activeBlock.value.content[key] as any[])
+  arr[index] = value
+  editorStore.updateBlockContent(activeBlock.value.id, { [key]: arr })
+}
+
+function updateArrayItemField(key: string, index: number, field: string, value: any) {
+  if (!activeBlock.value) return
+  const arr = deepClone(activeBlock.value.content[key] as any[])
+  arr[index] = { ...arr[index], [field]: value }
+  editorStore.updateBlockContent(activeBlock.value.id, { [key]: arr })
+}
+
+function removeArrayItem(key: string, index: number) {
+  if (!activeBlock.value) return
+  const arr = deepClone(activeBlock.value.content[key] as any[])
+  arr.splice(index, 1)
+  editorStore.updateBlockContent(activeBlock.value.id, { [key]: arr })
+}
+
+function addArrayItem(key: string) {
+  if (!activeBlock.value) return
+  const arr = deepClone(activeBlock.value.content[key] as any[])
+  // Create a default item based on existing items
+  if (arr.length > 0 && typeof arr[0] === 'object') {
+    const template: Record<string, any> = {}
+    for (const k of Object.keys(arr[0])) {
+      template[k] = typeof arr[0][k] === 'number' ? 0 : ''
+    }
+    arr.push(template)
+  } else {
+    arr.push('')
+  }
+  editorStore.updateBlockContent(activeBlock.value.id, { [key]: arr })
+}
+
+function close() {
+  uiStore.closeContentPanel()
+}
+</script>
+
+<style scoped>
+.content-panel {
+  z-index: 1010;
+}
+
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+</style>

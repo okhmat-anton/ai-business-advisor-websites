@@ -1,0 +1,198 @@
+# Структура проекта: Встраиваемый модуль конструктора сайтов (Tilda-like)
+
+## Frontend (Vue 3 + TypeScript + Vuetify 3)
+
+frontend/
+  public/
+    favicon.ico
+    index.html
+  src/
+    api/
+      index.ts                    # Настроенный инстанс Axios (перехватчики, baseURL, токен)
+      sites.ts                    # API для работы с сайтами (CRUD)
+      pages.ts                    # API для работы со страницами (CRUD, публикация)
+      blocks.ts                   # API для сохранения структуры блоков
+      domains.ts                  # API для управления доменами и SSL
+      upload.ts                   # API для загрузки файлов (изображения, видео)
+    assets/
+      styles/
+        main.scss                 # Глобальные стили
+        editor.scss               # Стили редактора
+        blocks.scss               # Общие стили для блоков
+      images/                     # Статические изображения
+    components/
+      blocks/                     # === БИБЛИОТЕКА ГОТОВЫХ БЛОКОВ ===
+        cover/                    # Категория: Обложки
+          CoverBlock01.vue
+          CoverBlock02.vue
+          CoverBlock03.vue
+        about/                    # Категория: О проекте
+          AboutBlock01.vue
+          AboutBlock02.vue
+        text/                     # Категория: Текст
+          TextBlock01.vue
+          TextBlock02.vue
+        heading/                  # Категория: Заголовки
+          HeadingBlock01.vue
+        image/                    # Категория: Изображения
+          ImageBlock01.vue
+          GalleryBlock01.vue
+        button/                   # Категория: Кнопки
+          ButtonBlock01.vue
+        form/                     # Категория: Формы
+          FormBlock01.vue
+          FormBlock02.vue
+        menu/                     # Категория: Меню (шапка)
+          MenuBlock01.vue
+          MenuBlock02.vue
+        footer/                   # Категория: Подвал
+          FooterBlock01.vue
+          FooterBlock02.vue
+        video/                    # Категория: Видео
+          VideoBlock01.vue
+        divider/                  # Категория: Разделители
+          DividerBlock01.vue
+        columns/                  # Категория: Колонки/Карточки
+          ColumnsBlock01.vue
+        zeroblock/                # Свободный редактор (аналог Zero Block)
+          ZeroBlock.vue
+          ZeroBlockElement.vue
+        index.ts                  # Реестр всех блоков: { type -> component }
+      editor/                     # === КОМПОНЕНТЫ РЕДАКТОРА ===
+        BlockRenderer.vue         # Динамический рендерер блоков
+        EditorCanvas.vue          # Холст редактора (отрисовка всех блоков страницы)
+        EditorToolbar.vue         # Верхняя панель (сохранить, превью, опубликовать, SEO)
+        BlockWrapper.vue          # Обертка блока (кнопки: настройки/контент/удалить/дублировать/вверх/вниз)
+        BlockAddButton.vue        # Кнопка "+" между блоками для добавления нового
+        BlocksLibraryModal.vue    # Модалка выбора блока из библиотеки (по категориям)
+        SettingsPanel.vue         # Боковая панель: отступы, фон, типографика, анимация
+        ContentPanel.vue          # Панель: редактирование контента блока (текст, картинки, ссылки)
+        DevicePreview.vue         # Переключатель предпросмотра (десктоп/планшет/телефон)
+      site/                       # === УПРАВЛЕНИЕ САЙТОМ И СТРАНИЦАМИ ===
+        SiteSettings.vue          # Глобальные настройки сайта (шрифты, цвета, фавикон)
+        PageList.vue              # Список страниц сайта
+        PageSettings.vue          # Настройки страницы (SEO, og:image, slug)
+        DomainSettings.vue        # Управление доменами и SSL
+      common/                     # === ОБЩИЕ UI КОМПОНЕНТЫ ===
+        AppHeader.vue             # Шапка приложения-редактора
+        ColorPicker.vue           # Выбор цвета
+        ImageUploader.vue         # Загрузка изображений
+        ConfirmDialog.vue         # Диалог подтверждения
+    composables/                  # Vue Composables
+      useAuth.ts                  # Получение и валидация токена из родительского проекта
+      useDragAndDrop.ts           # Логика сортировки блоков (vuedraggable)
+      useUndoRedo.ts              # Паттерн Undo/Redo для истории изменений
+      useZeroBlock.ts             # Логика свободного позиционирования в Zero Block
+      useAutoSave.ts              # Автосохранение черновика
+      useResponsive.ts            # Определение текущего разрешения и переключение превью
+    layouts/
+      EditorLayout.vue            # Лейаут редактора (header + sidebar + canvas)
+      PublicLayout.vue            # Лейаут опубликованного сайта (без UI редактора)
+    pages/                        # Страницы приложения (Vue Router views)
+      DashboardPage.vue           # Список сайтов пользователя
+      EditorPage.vue              # Страница редактирования (основная)
+      PreviewPage.vue             # Предпросмотр страницы
+      PublicPage.vue              # Отображение опубликованного сайта для посетителей
+    router/
+      index.ts                    # Vue Router (dashboard, editor, preview, public)
+    stores/                       # Pinia Stores
+      authStore.ts                # Токен, user_id, валидация сессии
+      editorStore.ts              # Массив блоков, activeBlockId, undo/redo стек, dirty flag
+      siteStore.ts                # Данные текущего сайта (настройки, список страниц)
+      uiStore.ts                  # Состояние UI (открытые панели, разрешение превью)
+    types/                        # TypeScript интерфейсы
+      block.ts                    # IBlock, IBlockContent, IBlockSettings, BlockType enum
+      site.ts                     # ISite, IPage, ISeoSettings, IDomain
+      editor.ts                   # IEditorState, IHistoryEntry
+      api.ts                      # Типы ответов API
+    utils/
+      blockRegistry.ts            # Маппинг type -> Vue component (dynamic import)
+      helpers.ts                  # uuid генератор, debounce, deep clone
+      validators.ts               # Валидация входных данных
+    App.vue
+    main.ts                       # Точка входа Vue
+  package.json
+  tsconfig.json
+  vite.config.ts
+  .eslintrc.cjs
+
+
+## Backend (Python + FastAPI)
+
+backend/
+  app/
+    api/
+      v1/
+        endpoints/
+          sites.py                # CRUD сайтов
+          pages.py                # CRUD страниц, публикация, дублирование
+          blocks.py               # Сохранение/загрузка JSON массива блоков
+          domains.py              # Привязка доменов, запрос SSL
+          auth.py                 # Валидация токена через app.akm-advisor.com
+          upload.py               # Загрузка файлов (изображения)
+        router.py                 # Сборка всех роутеров API v1
+    core/
+      config.py                   # Pydantic BaseSettings (переменные окружения)
+      security.py                 # Декодирование и проверка JWT
+      dependencies.py             # FastAPI Depends (get_current_user, get_db)
+      celery_app.py               # Настройка Celery
+    db/
+      postgres.py                 # Подключение к PostgreSQL (SQLAlchemy async)
+      mongodb.py                  # Подключение к MongoDB (motor)
+      redis.py                    # Подключение к Redis (aioredis)
+    models/                       # SQLAlchemy модели (PostgreSQL)
+      site.py                     # Site: id, user_id, name, domain, global_settings
+      domain.py                   # Domain: id, site_id, domain_name, ssl_status
+      user_proxy.py               # UserProxy: id, external_id (кэш данных пользователя)
+    schemas/                      # Pydantic схемы (request/response)
+      site.py                     # SiteCreate, SiteUpdate, SiteResponse
+      page.py                     # PageCreate, PageUpdate, PageResponse
+      block.py                    # BlockSchema (type, content, settings)
+      domain.py                   # DomainCreate, DomainResponse
+    services/                     # Бизнес-логика
+      site_service.py             # Операции с сайтами
+      page_service.py             # Операции со страницами и блоками (MongoDB)
+      publish_service.py          # Публикация: draft -> published, сброс кэша
+      ssl_service.py              # Генерация Let's Encrypt сертификатов
+      cache_service.py            # Работа с Redis кэшем опубликованных страниц
+    worker/                       # Celery задачи
+      tasks.py                    # SSL генерация, очистка кэша, ресайз картинок
+    main.py                       # Точка входа FastAPI (uvicorn)
+  alembic/                        # Миграции PostgreSQL
+    versions/
+    env.py
+  alembic.ini
+  requirements.txt
+  Dockerfile
+
+
+## Admin Panel
+
+admin/
+  src/
+    ...                           # Админка (управление шаблонами, модерация, статистика)
+  package.json
+
+
+## Infrastructure
+
+infrastructure/
+  nginx/
+    nginx.conf                    # Основной конфиг Nginx
+    templates/                    # Шаблоны для динамической генерации конфигов доменов
+      site.conf.template
+  docker-compose.yml              # Postgres, Mongo, Redis, Backend, Frontend, Celery, Nginx
+  docker-compose.dev.yml          # Конфиг для локальной разработки
+  Dockerfile.frontend
+  Dockerfile.backend
+
+
+## Root Files
+
+.env.example                      # Пример переменных окружения
+.env.agent                        # Ключ AI-агента (ЗАПРЕЩЕНО коммитить!)
+.gitignore                        # .env.agent, node_modules, __pycache__, dist
+AGENTS.md                         # Конфигурация AI-агента
+technical_requirements.txt        # Техническое задание
+structure.txt                     # Этот файл - структура проекта
+README.md                         # Описание проекта и инструкции по запуску
