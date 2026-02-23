@@ -477,8 +477,29 @@ export const BLOCK_TEMPLATES: IBlockTemplate[] = [
   },
 ]
 
-// ========== MOCK IN-MEMORY DATABASE ==========
-let mockSites: ISite[] = [
+// ========== LOCAL STORAGE PERSISTENCE ==========
+const STORAGE_KEY_SITES = 'mock_sites'
+const STORAGE_KEY_BLOCKS = 'mock_blocks'
+
+function loadFromStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw) return JSON.parse(raw)
+  } catch { /* ignore parse errors */ }
+  return fallback
+}
+
+function saveToStorage(key: string, data: unknown): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(data))
+  } catch { /* ignore quota errors */ }
+}
+
+function persistSites() { saveToStorage(STORAGE_KEY_SITES, mockSites) }
+function persistBlocks() { saveToStorage(STORAGE_KEY_BLOCKS, mockBlocks) }
+
+// ========== MOCK DATABASE (persisted in localStorage) ==========
+const DEFAULT_SITES: ISite[] = [
   {
     id: 'site-1',
     userId: 'user-1',
@@ -521,7 +542,7 @@ let mockSites: ISite[] = [
   },
 ]
 
-let mockBlocks: Record<string, IBlock[]> = {
+const DEFAULT_BLOCKS: Record<string, IBlock[]> = {
   'page-1': [
     {
       id: 'block-1',
@@ -557,6 +578,9 @@ let mockBlocks: Record<string, IBlock[]> = {
     },
   ],
 }
+
+let mockSites: ISite[] = loadFromStorage(STORAGE_KEY_SITES, DEFAULT_SITES)
+let mockBlocks: Record<string, IBlock[]> = loadFromStorage(STORAGE_KEY_BLOCKS, DEFAULT_BLOCKS)
 
 // ========== MOCK API FUNCTIONS ==========
 
@@ -607,6 +631,7 @@ export async function createSite(name: string, description?: string, isImported?
     site.pages[0].siteId = site.id
   }
   mockSites.push(site)
+  persistSites()
   return JSON.parse(JSON.stringify(site))
 }
 
@@ -616,6 +641,7 @@ export async function updateSite(siteId: string, data: Partial<ISite>): Promise<
   if (index === -1) return null
   const existing = mockSites[index]!
   mockSites[index] = { ...existing, ...data, updatedAt: new Date().toISOString() } as ISite
+  persistSites()
   return JSON.parse(JSON.stringify(mockSites[index]))
 }
 
@@ -625,6 +651,8 @@ export async function deleteSite(siteId: string): Promise<boolean> {
   if (index === -1) return false
   mockSites.splice(index, 1)
   delete mockBlocks[siteId]
+  persistSites()
+  persistBlocks()
   return true
 }
 
@@ -646,6 +674,7 @@ export async function createPage(siteId: string, title: string, slug: string): P
     updatedAt: new Date().toISOString(),
   }
   site.pages.push(page)
+  persistSites()
   return JSON.parse(JSON.stringify(page))
 }
 
@@ -657,6 +686,8 @@ export async function deletePage(siteId: string, pageId: string): Promise<boolea
   if (index === -1) return false
   site.pages.splice(index, 1)
   delete mockBlocks[pageId]
+  persistSites()
+  persistBlocks()
   return true
 }
 
@@ -667,6 +698,7 @@ export async function updatePage(siteId: string, pageId: string, data: Partial<I
   const page = site.pages.find((p) => p.id === pageId)
   if (!page) return null
   Object.assign(page, data, { updatedAt: new Date().toISOString() })
+  persistSites()
   return JSON.parse(JSON.stringify(page))
 }
 
@@ -679,6 +711,7 @@ export async function fetchPageBlocks(pageId: string): Promise<IBlock[]> {
 export async function savePageBlocks(pageId: string, blocks: IBlock[]): Promise<boolean> {
   await delay()
   mockBlocks[pageId] = JSON.parse(JSON.stringify(blocks))
+  persistBlocks()
   return true
 }
 
@@ -696,6 +729,7 @@ export async function publishPage(siteId: string, pageId: string): Promise<boole
   const page = site.pages.find((p) => p.id === pageId)
   if (!page) return false
   page.status = 'published'
+  persistSites()
   return true
 }
 
@@ -705,5 +739,6 @@ export async function publishSite(siteId: string): Promise<boolean> {
   if (!site) return false
   site.status = 'published'
   site.pages.forEach((p) => (p.status = 'published'))
+  persistSites()
   return true
 }

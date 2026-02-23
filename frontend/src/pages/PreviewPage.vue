@@ -18,12 +18,28 @@
       <v-spacer />
 
       <v-btn variant="text" size="small" @click="goBack">
-        {{ siteStore.currentSite?.isImported ? 'Back to Pages' : 'Back to Editor' }}
+        {{ isImported ? 'Back to Pages' : 'Back to Editor' }}
       </v-btn>
     </div>
 
-    <!-- Preview frame -->
-    <div class="preview-frame" :style="frameStyle">
+    <!-- Imported site preview: raw HTML in iframe -->
+    <div v-if="isImported" class="preview-frame" :style="frameStyle">
+      <iframe
+        v-if="pageHtmlContent"
+        ref="previewIframe"
+        :srcdoc="pageHtmlContent"
+        class="preview-iframe"
+        sandbox="allow-scripts allow-same-origin"
+        frameborder="0"
+      />
+      <div v-else class="empty-preview">
+        <v-icon size="48" color="grey-lighten-1">mdi-eye-off</v-icon>
+        <p class="text-body-2 text-grey mt-2">No content to preview</p>
+      </div>
+    </div>
+
+    <!-- Normal site preview: blocks -->
+    <div v-else class="preview-frame" :style="frameStyle">
       <div class="preview-content">
         <template v-for="block in sortedBlocks" :key="block.id">
           <BlockRenderer :block="block" />
@@ -53,6 +69,11 @@ const siteStore = useSiteStore()
 
 const deviceMode = ref('desktop')
 
+const isImported = computed(() => siteStore.currentSite?.isImported === true)
+
+// Raw HTML content for imported pages
+const pageHtmlContent = computed(() => siteStore.currentPage?.htmlContent || '')
+
 const sortedBlocks = computed(() =>
   [...editorStore.blocks].sort((a, b) => a.order - b.order)
 )
@@ -68,8 +89,7 @@ const frameStyle = computed(() => {
 function goBack() {
   const siteId = route.params.siteId as string
   const pageId = route.params.pageId as string
-  // Imported sites go back to site pages list, not editor
-  if (siteStore.currentSite?.isImported) {
+  if (isImported.value) {
     router.push(`/sites/${siteId}`)
   } else {
     router.push(`/editor/${siteId}/${pageId}`)
@@ -85,8 +105,10 @@ onMounted(async () => {
   }
   if (pageId) {
     siteStore.setCurrentPage(pageId)
-    // Always load blocks for the requested page (previous page blocks may be stale)
-    await editorStore.loadBlocks(siteId, pageId)
+    // Only load blocks for non-imported sites
+    if (!siteStore.currentSite?.isImported) {
+      await editorStore.loadBlocks(siteId, pageId)
+    }
   }
 })
 </script>
@@ -113,6 +135,13 @@ onMounted(async () => {
   min-height: calc(100vh - 48px);
   transition: max-width 0.3s ease;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.preview-iframe {
+  width: 100%;
+  height: calc(100vh - 48px);
+  border: none;
+  display: block;
 }
 
 .preview-content {

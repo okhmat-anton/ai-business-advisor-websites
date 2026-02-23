@@ -102,11 +102,11 @@
                 <v-list density="compact">
                   <v-list-item @click="openSite(site.id)">
                     <template #prepend>
-                      <v-icon size="18">mdi-pencil</v-icon>
+                      <v-icon size="18">{{ site.isImported ? 'mdi-eye' : 'mdi-pencil' }}</v-icon>
                     </template>
-                    <v-list-item-title>Edit</v-list-item-title>
+                    <v-list-item-title>{{ site.isImported ? 'View' : 'Edit' }}</v-list-item-title>
                   </v-list-item>
-                  <v-list-item @click="duplicateSite(site)">
+                  <v-list-item v-if="!site.isImported" @click="duplicateSite(site)">
                     <template #prepend>
                       <v-icon size="18">mdi-content-copy</v-icon>
                     </template>

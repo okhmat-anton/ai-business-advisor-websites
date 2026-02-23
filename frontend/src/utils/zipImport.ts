@@ -1,49 +1,33 @@
-// ZIP import utility - parses uploaded ZIP archive and creates site structure
+// ZIP import utility — extracts HTML pages and inlines assets (CSS, images) into them
 import JSZip from 'jszip'
-import { v4 as uuidv4 } from 'uuid'
-import type { IBlock } from '@/types/block'
-import type { IPage } from '@/types/site'
-import { BlockCategory, DEFAULT_BLOCK_SETTINGS } from '@/types/block'
 
 export interface ZipImportResult {
   siteName: string
   pages: ImportedPage[]
-  assets: ImportedAsset[]
 }
 
 export interface ImportedPage {
+  fileName: string
   title: string
   slug: string
-  htmlContent: string
-  blocks: IBlock[]
+  htmlContent: string // full HTML with inlined assets
   isMain: boolean
 }
 
-export interface ImportedAsset {
-  path: string
-  type: 'image' | 'style' | 'script' | 'font' | 'other'
-  content: Blob
-  url?: string // objectURL for preview
-}
-
 /**
- * Parse a ZIP file and extract site structure
+ * Parse a ZIP file and extract site pages with inlined assets
  */
 export async function parseZipFile(file: File): Promise<ZipImportResult> {
-  // Read file as ArrayBuffer first — passing File directly can fail in some environments
   const arrayBuffer = await file.arrayBuffer()
   const zip = await JSZip.loadAsync(arrayBuffer)
   const siteName = file.name.replace(/\.zip$/i, '')
 
-  const pages: ImportedPage[] = []
-  const assets: ImportedAsset[] = []
-
   // Detect root directory (some ZIPs have a wrapper folder)
   const rootPrefix = detectRootPrefix(zip)
 
-  // Collect all files
+  // Collect HTML files
   const htmlFiles: string[] = []
-  const assetFiles: string[] = []
+  const assetEntries: Array<{ path: string; relativePath: string }> = []
 
   zip.forEach((relativePath, entry) => {
     if (entry.dir) return
@@ -53,67 +37,133 @@ export async function parseZipFile(file: File): Promise<ZipImportResult> {
     if (cleanPath.match(/\.html?$/i)) {
       htmlFiles.push(relativePath)
     } else {
-      assetFiles.push(relativePath)
+      assetEntries.push({ path: cleanPath, relativePath })
     }
   })
 
-  // Process assets first (images, CSS, JS, fonts)
-  for (const assetPath of assetFiles) {
-    const entry = zip.file(assetPath)
-    if (!entry) continue
+  // Build asset map — read all non-HTML files as base64 data URLs for inlining
+  const assetMap = new Map<string, string>()
 
-    const cleanPath = assetPath.replace(rootPrefix, '')
-    const blob = await entry.async('blob')
-    const assetType = classifyAsset(cleanPath)
-
-    const objectURL = assetType === 'image' ? URL.createObjectURL(blob) : undefined
-
-    assets.push({
-      path: cleanPath,
-      type: assetType,
-      content: blob,
-      url: objectURL,
+  await Promise.all(
+    assetEntries.map(async ({ path, relativePath }) => {
+      const entry = zip.file(relativePath)
+      if (!entry) return
+      const blob = await entry.async('blob')
+      const dataUrl = await blobToDataUrl(blob, getMimeType(path))
+      assetMap.set(path, dataUrl)
     })
-  }
+  )
 
   // Process HTML files
+  const pages: ImportedPage[] = []
+
   for (const htmlPath of htmlFiles) {
     const entry = zip.file(htmlPath)
     if (!entry) continue
 
     const cleanPath = htmlPath.replace(rootPrefix, '')
-    const htmlContent = await entry.async('string')
+    let htmlContent = await entry.async('string')
     const title = extractPageTitle(htmlContent) || cleanPath.replace(/\.html?$/i, '')
     const slug = cleanPath
       .replace(/\.html?$/i, '')
-      .replace(/[^a-z0-9-]/gi, '-')
+      .replace(/[^a-z0-9-/]/gi, '-')
       .toLowerCase()
 
-    // Determine if main page
     const isMain = cleanPath.match(/^index\.html?$/i) !== null
 
-    // Parse HTML into blocks
-    const blocks = parseHtmlToBlocks(htmlContent, assets)
+    // Inline all referenced assets (CSS, JS, images) into HTML
+    htmlContent = inlineAssets(htmlContent, cleanPath, assetMap)
 
     pages.push({
+      fileName: cleanPath,
       title,
       slug: slug === 'index' ? '' : slug,
       htmlContent,
-      blocks,
       isMain,
     })
-  }
-
-  // If no main page found, mark the first one
-  if (pages.length > 0 && !pages.some((p) => p.isMain)) {
-    const firstPage = pages[0]
-    if (firstPage) firstPage.isMain = true
   }
 
   // Sort: main page first
   pages.sort((a, b) => (a.isMain ? -1 : b.isMain ? 1 : 0))
 
-  return { siteName, pages, assets }
+  return { siteName, pages }
+}
+
+/**
+ * Inline CSS, JS, and image assets into HTML by replacing relative paths with data URLs
+ */
+function inlineAssets(
+  html: string,
+  htmlPath: string,
+  assetMap: Map<string, string>
+): string {
+  const htmlDir = htmlPath.includes('/')
+    ? htmlPath.substring(0, htmlPath.lastIndexOf('/') + 1).replace(/^[^/]*\//, '')
+    : ''
+
+  // Replace src="" and href="" attributes with data URLs
+  html = html.replace(
+    /(src|href)=["']([^"']+)["']/gi,
+    (match, attr, path) => {
+      if (isExternalUrl(path)) return match
+      const resolvedPath = resolvePath(htmlDir, path)
+      const dataUrl = assetMap.get(resolvedPath)
+      if (dataUrl) {
+        return `${attr}="${dataUrl}"`
+      }
+      return match
+    }
+  )
+
+  // Replace url() in inline styles and <style> tags
+  html = html.replace(
+    /url\(["']?([^"')]+)["']?\)/gi,
+    (match, path) => {
+      if (isExternalUrl(path)) return match
+      const resolvedPath = resolvePath(htmlDir, path)
+      const dataUrl = assetMap.get(resolvedPath)
+      if (dataUrl) {
+        return `url("${dataUrl}")`
+      }
+      return match
+    }
+  )
+
+  return html
+}
+
+function isExternalUrl(path: string): boolean {
+  return (
+    path.startsWith('http://') ||
+    path.startsWith('https://') ||
+    path.startsWith('//') ||
+    path.startsWith('data:') ||
+    path.startsWith('#') ||
+    path.startsWith('mailto:') ||
+    path.startsWith('tel:')
+  )
+}
+
+/**
+ * Resolve a relative path against a directory
+ */
+function resolvePath(dir: string, relativePath: string): string {
+  const cleanPath = relativePath.split('?')[0]!.split('#')[0]!
+
+  if (cleanPath.startsWith('/')) {
+    return cleanPath.substring(1)
+  }
+
+  const parts = (dir + cleanPath).split('/')
+  const resolved: string[] = []
+  for (const part of parts) {
+    if (part === '..') {
+      resolved.pop()
+    } else if (part !== '.' && part !== '') {
+      resolved.push(part)
+    }
+  }
+  return resolved.join('/')
 }
 
 /**
@@ -125,7 +175,6 @@ function detectRootPrefix(zip: JSZip): string {
 
   if (paths.length === 0) return ''
 
-  // Check if all paths start with a common directory
   const firstPath = paths[0]
   if (!firstPath) return ''
   const firstSlash = firstPath.indexOf('/')
@@ -138,27 +187,6 @@ function detectRootPrefix(zip: JSZip): string {
 }
 
 /**
- * Classify asset type by file extension
- */
-function classifyAsset(path: string): ImportedAsset['type'] {
-  const ext = path.split('.').pop()?.toLowerCase() || ''
-
-  if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'ico', 'bmp', 'avif'].includes(ext)) {
-    return 'image'
-  }
-  if (['css', 'scss', 'less'].includes(ext)) {
-    return 'style'
-  }
-  if (['js', 'mjs', 'ts'].includes(ext)) {
-    return 'script'
-  }
-  if (['woff', 'woff2', 'ttf', 'otf', 'eot'].includes(ext)) {
-    return 'font'
-  }
-  return 'other'
-}
-
-/**
  * Extract page title from HTML <title> tag
  */
 function extractPageTitle(html: string): string | null {
@@ -167,122 +195,50 @@ function extractPageTitle(html: string): string | null {
 }
 
 /**
- * Parse HTML content into block structures.
- * Creates a combination of recognized blocks and raw HTML (ZeroBlock) blocks.
+ * Get MIME type from file extension
  */
-function parseHtmlToBlocks(html: string, assets: ImportedAsset[]): IBlock[] {
-  const blocks: IBlock[] = []
-  let order = 0
-
-  // Extract body content
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
-  const bodyContent = bodyMatch?.[1] ?? html
-
-  // Try to find common structural sections
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(`<div>${bodyContent}</div>`, 'text/html')
-  const root = doc.body.firstElementChild
-
-  if (!root || !root.children.length) {
-    // Whole page as a single ZeroBlock
-    blocks.push(createHtmlBlock(bodyContent, order++))
-    return blocks
+function getMimeType(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase() || ''
+  const mimeMap: Record<string, string> = {
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
+    svg: 'image/svg+xml', webp: 'image/webp', ico: 'image/x-icon', bmp: 'image/bmp',
+    avif: 'image/avif',
+    css: 'text/css',
+    js: 'application/javascript', mjs: 'application/javascript',
+    woff: 'font/woff', woff2: 'font/woff2', ttf: 'font/ttf', otf: 'font/otf',
+    eot: 'application/vnd.ms-fontobject',
+    json: 'application/json', xml: 'application/xml',
   }
+  return mimeMap[ext] || 'application/octet-stream'
+}
 
-  // Walk through top-level elements and try to identify block types
-  for (const element of Array.from(root.children)) {
-    const el = element as HTMLElement
-    const tagName = el.tagName.toLowerCase()
-    const classNames = (el.className as string) || ''
-    const outerHtml = el.outerHTML
-
-    // Try to identify common patterns
-    if (tagName === 'nav' || (typeof classNames === 'string' && classNames.match(/\b(nav|menu|header|navbar)\b/i))) {
-      blocks.push(createTypedBlock('MenuBlock01', BlockCategory.Menu, {
-        html: outerHtml,
-      }, order++))
-    } else if (tagName === 'footer' || (typeof classNames === 'string' && classNames.match(/\bfooter\b/i))) {
-      blocks.push(createTypedBlock('FooterBlock01', BlockCategory.Footer, {
-        html: outerHtml,
-      }, order++))
-    } else if (typeof classNames === 'string' && classNames.match(/\b(hero|cover|banner|jumbotron)\b/i)) {
-      blocks.push(createTypedBlock('CoverBlock01', BlockCategory.Cover, {
-        html: outerHtml,
-        title: extractTextContent(el, 'h1') || 'Cover',
-        subtitle: extractTextContent(el, 'p') || '',
-      }, order++))
-    } else if (tagName === 'section' || tagName === 'div' || tagName === 'article') {
-      // Generic section — import as HTML block
-      blocks.push(createHtmlBlock(outerHtml, order++))
-    } else {
-      // Everything else — raw HTML
-      blocks.push(createHtmlBlock(outerHtml, order++))
+/**
+ * Convert Blob to data URL
+ */
+function blobToDataUrl(blob: Blob, mimeType: string): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const result = reader.result as string
+      if (result.startsWith('data:application/octet-stream') && mimeType !== 'application/octet-stream') {
+        resolve(result.replace('data:application/octet-stream', `data:${mimeType}`))
+      } else {
+        resolve(result)
+      }
     }
-  }
-
-  // If no blocks were created, wrap everything
-  if (blocks.length === 0) {
-    blocks.push(createHtmlBlock(bodyContent, order++))
-  }
-
-  return blocks
-}
-
-/**
- * Create a ZeroBlock (raw HTML) block
- */
-function createHtmlBlock(html: string, order: number): IBlock {
-  return {
-    id: uuidv4(),
-    type: 'ZeroBlock',
-    category: BlockCategory.ZeroBlock,
-    content: {
-      html,
-      elements: [],
-    },
-    settings: {
-      ...DEFAULT_BLOCK_SETTINGS,
-      paddingTop: '0px',
-      paddingBottom: '0px',
-    },
-    order,
-  }
-}
-
-/**
- * Create a typed block with parsed content
- */
-function createTypedBlock(
-  type: string,
-  category: BlockCategory,
-  content: Record<string, any>,
-  order: number
-): IBlock {
-  return {
-    id: uuidv4(),
-    type,
-    category,
-    content,
-    settings: { ...DEFAULT_BLOCK_SETTINGS },
-    order,
-  }
-}
-
-/**
- * Extract text content from first matching child element
- */
-function extractTextContent(parent: HTMLElement, selector: string): string | null {
-  const el = parent.querySelector(selector)
-  return el ? el.textContent?.trim() || null : null
+    reader.readAsDataURL(new Blob([blob], { type: mimeType }))
+  })
 }
 
 /**
  * Validate that the file is a valid ZIP
  */
 export function isValidZipFile(file: File): boolean {
-  return file.type === 'application/zip' ||
+  return (
+    file.type === 'application/zip' ||
     file.type === 'application/x-zip-compressed' ||
     file.name.endsWith('.zip')
+  )
 }
 
 /**

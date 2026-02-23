@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, provide } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useEditorStore } from '@/stores/editorStore'
 import { useSiteStore } from '@/stores/siteStore'
 import { useUndoRedo } from '@/composables/useUndoRedo'
@@ -51,6 +51,7 @@ import SiteSettings from '@/components/site/SiteSettings.vue'
 import PageSettings from '@/components/site/PageSettings.vue'
 
 const route = useRoute()
+const router = useRouter()
 const editorStore = useEditorStore()
 const siteStore = useSiteStore()
 
@@ -77,6 +78,16 @@ onMounted(async () => {
 
   if (siteId) {
     await siteStore.loadSite(siteId)
+
+    // Imported sites cannot be edited — redirect to preview or site pages
+    if (siteStore.currentSite?.isImported) {
+      if (pageId) {
+        router.replace(`/preview/${siteId}/${pageId}`)
+      } else {
+        router.replace(`/sites/${siteId}`)
+      }
+      return
+    }
 
     if (pageId) {
       siteStore.setCurrentPage(pageId)

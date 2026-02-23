@@ -38,10 +38,10 @@
           />
         </div>
 
-        <!-- Step 2: Preview -->
+        <!-- Step 2: Preview — pick index page -->
         <div v-else-if="step === 'preview'">
           <v-alert type="info" variant="tonal" density="compact" class="mb-4">
-            ZIP parsed successfully. Review the contents below.
+            ZIP parsed successfully. Choose the main page (index.html).
           </v-alert>
 
           <!-- Site name -->
@@ -54,68 +54,44 @@
             class="mb-4"
           />
 
-          <!-- Pages found -->
+          <!-- Pages found — user selects which is index -->
           <div class="text-subtitle-2 mb-2">
             Pages found: {{ importResult?.pages.length || 0 }}
           </div>
-          <v-list density="compact" class="mb-3 border rounded">
+          <v-list density="compact" class="mb-3 border rounded" mandatory>
             <v-list-item
               v-for="page in importResult?.pages"
-              :key="page.slug"
+              :key="page.fileName"
               :title="page.title"
-              :subtitle="`${page.blocks.length} blocks · ${page.slug || '/'}`"
+              :subtitle="page.fileName"
+              :value="page.fileName"
+              :active="selectedMainPage === page.fileName"
+              @click="selectedMainPage = page.fileName"
+              color="primary"
             >
               <template #prepend>
-                <v-icon size="20" color="primary">mdi-file-document-outline</v-icon>
+                <v-icon size="20" :color="selectedMainPage === page.fileName ? 'primary' : 'grey'">
+                  {{ selectedMainPage === page.fileName ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank' }}
+                </v-icon>
               </template>
               <template #append>
-                <v-chip v-if="page.isMain" size="x-small" color="primary" variant="tonal">
-                  Main
+                <v-chip
+                  v-if="selectedMainPage === page.fileName"
+                  size="x-small"
+                  color="primary"
+                  variant="tonal"
+                >
+                  index.html
                 </v-chip>
               </template>
             </v-list-item>
           </v-list>
-
-          <!-- Assets found -->
-          <div class="text-subtitle-2 mb-2">
-            Assets: {{ importResult?.assets.length || 0 }}
-          </div>
-          <div class="d-flex flex-wrap ga-2 mb-3">
-            <v-chip
-              v-for="(count, type) in assetCounts"
-              :key="type"
-              size="small"
-              variant="tonal"
-              :color="assetColor(type as string)"
-            >
-              <v-icon start size="14">{{ assetIcon(type as string) }}</v-icon>
-              {{ count }} {{ type }}
-            </v-chip>
-          </div>
-
-          <!-- Image previews -->
-          <div v-if="imageAssets.length > 0" class="image-previews d-flex flex-wrap ga-2 mb-2">
-            <div
-              v-for="asset in imageAssets.slice(0, 6)"
-              :key="asset.path"
-              class="image-preview-item"
-            >
-              <v-img :src="asset.url!" width="64" height="64" cover class="rounded" />
-              <v-tooltip activator="parent" location="bottom">{{ asset.path }}</v-tooltip>
-            </div>
-            <div
-              v-if="imageAssets.length > 6"
-              class="image-preview-item d-flex align-center justify-center text-caption text-grey"
-            >
-              +{{ imageAssets.length - 6 }}
-            </div>
-          </div>
         </div>
 
         <!-- Step 3: Importing -->
         <div v-else-if="step === 'importing'" class="text-center py-6">
           <v-progress-circular indeterminate color="primary" size="48" class="mb-4" />
-          <p class="text-body-1 font-weight-medium">Creating your site...</p>
+          <p class="text-body-1 font-weight-medium">Importing site...</p>
           <p class="text-body-2 text-medium-emphasis">{{ importStatus }}</p>
         </div>
 
@@ -159,7 +135,7 @@
           variant="flat"
           @click="openImportedSite"
         >
-          Open in Editor
+          Open Site
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -170,13 +146,11 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSiteStore } from '@/stores/siteStore'
-import { useEditorStore } from '@/stores/editorStore'
 import {
   parseZipFile,
   isValidZipFile,
   formatFileSize,
   type ZipImportResult,
-  type ImportedAsset,
 } from '@/utils/zipImport'
 
 const props = defineProps<{
@@ -189,7 +163,6 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const siteStore = useSiteStore()
-const editorStore = useEditorStore()
 
 type Step = 'upload' | 'preview' | 'importing' | 'done'
 
@@ -199,6 +172,7 @@ const importing = ref(false)
 const error = ref('')
 const importStatus = ref('')
 const siteName = ref('')
+const selectedMainPage = ref<string>('')
 const importResult = ref<ZipImportResult | null>(null)
 const importedSiteId = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -208,41 +182,6 @@ const show = computed({
   set: (val: boolean) => emit('update:modelValue', val),
 })
 
-const imageAssets = computed(() =>
-  importResult.value?.assets.filter((a) => a.type === 'image') || []
-)
-
-const assetCounts = computed(() => {
-  if (!importResult.value) return {}
-  const counts: Record<string, number> = {}
-  for (const a of importResult.value.assets) {
-    counts[a.type] = (counts[a.type] || 0) + 1
-  }
-  return counts
-})
-
-function assetIcon(type: string): string {
-  const icons: Record<string, string> = {
-    image: 'mdi-image-outline',
-    style: 'mdi-language-css3',
-    script: 'mdi-language-javascript',
-    font: 'mdi-format-font',
-    other: 'mdi-file-outline',
-  }
-  return icons[type] || 'mdi-file-outline'
-}
-
-function assetColor(type: string): string {
-  const colors: Record<string, string> = {
-    image: 'blue',
-    style: 'purple',
-    script: 'amber',
-    font: 'teal',
-    other: 'grey',
-  }
-  return colors[type] || 'grey'
-}
-
 function openFilePicker() {
   fileInput.value?.click()
 }
@@ -250,17 +189,13 @@ function openFilePicker() {
 function onFileSelect(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
-  if (file) {
-    handleFile(file)
-  }
+  if (file) handleFile(file)
 }
 
 function onDrop(e: DragEvent) {
   isDragging.value = false
   const file = e.dataTransfer?.files?.[0]
-  if (file) {
-    handleFile(file)
-  }
+  if (file) handleFile(file)
 }
 
 async function handleFile(file: File) {
@@ -271,7 +206,6 @@ async function handleFile(file: File) {
     return
   }
 
-  // 100MB limit
   if (file.size > 100 * 1024 * 1024) {
     error.value = `File too large (${formatFileSize(file.size)}). Maximum size is 100 MB.`
     return
@@ -285,6 +219,10 @@ async function handleFile(file: File) {
       error.value = 'No HTML pages found in the ZIP archive'
       return
     }
+
+    // Auto-select index.html or first page
+    const mainPage = importResult.value.pages.find((p) => p.isMain)
+    selectedMainPage.value = mainPage?.fileName || importResult.value.pages[0]?.fileName || ''
 
     step.value = 'preview'
   } catch (err: any) {
@@ -300,39 +238,42 @@ async function doImport() {
   step.value = 'importing'
 
   try {
-    // Step 1: Create site
+    // Create site (marked as imported)
     importStatus.value = 'Creating site...'
     const site = await siteStore.addSite(siteName.value || 'Imported Site', undefined, true)
     if (!site) throw new Error('Failed to create site')
 
     importedSiteId.value = site.id
+    await siteStore.loadSite(site.id)
 
-    // Step 2: Process pages
+    // Save each page with raw HTML content
     for (let i = 0; i < importResult.value.pages.length; i++) {
       const pageData = importResult.value.pages[i]!
+      const isMainPage = pageData.fileName === selectedMainPage.value
       importStatus.value = `Importing page ${i + 1}/${importResult.value.pages.length}: ${pageData.title}`
 
-      if (i === 0 && site.pages.length > 0) {
+      if (i === 0 && siteStore.currentSite?.pages.length) {
         // Update the default page created with the site
-        const defaultPage = site.pages[0]!
-        await siteStore.loadSite(site.id)
-        const firstPage = siteStore.currentSite?.pages[0]
-        if (firstPage) {
-          firstPage.title = pageData.title
-          firstPage.slug = pageData.slug
-          firstPage.isMain = pageData.isMain
-
-          // Save parsed blocks directly (preserves HTML content from ZIP)
-          editorStore.setBlocks(site.id, defaultPage.id, pageData.blocks)
-          await editorStore.save()
-        }
+        const defaultPage = siteStore.currentSite.pages[0]!
+        await siteStore.savePage(site.id, {
+          ...defaultPage,
+          title: pageData.title,
+          slug: pageData.slug,
+          htmlContent: pageData.htmlContent,
+          isMain: isMainPage,
+          isHomePage: isMainPage,
+        })
       } else {
-        // Create new page
+        // Create new page and update it with HTML content
         const page = await siteStore.addPage(site.id, pageData.title)
         if (page) {
-          // Save parsed blocks directly (preserves HTML content from ZIP)
-          editorStore.setBlocks(site.id, page.id, pageData.blocks)
-          await editorStore.save()
+          await siteStore.savePage(site.id, {
+            ...page,
+            slug: pageData.slug,
+            htmlContent: pageData.htmlContent,
+            isMain: isMainPage,
+            isHomePage: isMainPage,
+          })
         }
       }
     }
@@ -358,27 +299,17 @@ function reset() {
   step.value = 'upload'
   importResult.value = null
   siteName.value = ''
+  selectedMainPage.value = ''
   error.value = ''
-  // Revoke object URLs
-  cleanupAssets()
-}
-
-function cleanupAssets() {
-  if (importResult.value) {
-    for (const asset of importResult.value.assets) {
-      if (asset.url) URL.revokeObjectURL(asset.url)
-    }
-  }
 }
 
 function close() {
-  cleanupAssets()
   show.value = false
-  // Reset after animation
   setTimeout(() => {
     step.value = 'upload'
     importResult.value = null
     siteName.value = ''
+    selectedMainPage.value = ''
     error.value = ''
     importedSiteId.value = null
   }, 300)
@@ -405,14 +336,6 @@ function close() {
   border-color: rgb(var(--v-theme-primary));
   background: rgba(var(--v-theme-primary), 0.08);
   transform: scale(1.01);
-}
-
-.image-preview-item {
-  width: 64px;
-  height: 64px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .border {

@@ -15,6 +15,7 @@ export interface IPage {
   title: string
   slug: string
   blocks: string[] // block IDs in order
+  htmlContent?: string // raw HTML for imported pages
   seo: ISeoSettings
   status: 'draft' | 'published'
   isMain: boolean
