@@ -572,13 +572,14 @@ export async function fetchSite(siteId: string): Promise<ISite | null> {
   return site ? JSON.parse(JSON.stringify(site)) : null
 }
 
-export async function createSite(name: string, description?: string): Promise<ISite> {
+export async function createSite(name: string, description?: string, isImported?: boolean): Promise<ISite> {
   await delay()
   const site: ISite = {
     id: uuidv4(),
     userId: 'user-1',
     name,
     description,
+    isImported: isImported || false,
     globalSettings: {
       fonts: { heading: 'Inter', body: 'Inter' },
       colors: { primary: '#1976D2', secondary: '#424242', accent: '#FF5252', background: '#ffffff', text: '#212121' },

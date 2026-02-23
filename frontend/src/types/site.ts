@@ -63,6 +63,7 @@ export interface ISite {
   subdomain?: string
   favicon?: string
   isPublished?: boolean
+  isImported?: boolean
   globalSettings: ISiteGlobalSettings
   domains: IDomain[]
   pages: IPage[]

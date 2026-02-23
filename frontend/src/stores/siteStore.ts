@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ISite, IPage, ISiteGlobalSettings } from '@/types/site'
-import { fetchSites, fetchSite, createSite, updateSite, deleteSite, createPage, deletePage, updatePage, publishSite } from '@/api/mock'
+import { fetchSites, fetchSite, createSite, updateSite, deleteSite, createPage, deletePage, updatePage, publishSite } from '@/api/api'
 import { slugify } from '@/utils/helpers'
 
 export const useSiteStore = defineStore('site', () => {
@@ -42,8 +42,8 @@ export const useSiteStore = defineStore('site', () => {
   }
 
   /** Create a new site */
-  async function addSite(name: string, description?: string) {
-    const site = await createSite(name, description)
+  async function addSite(name: string, description?: string, isImported?: boolean) {
+    const site = await createSite(name, description, isImported)
     sites.value.push(site)
     return site
   }

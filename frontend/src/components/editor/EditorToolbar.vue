@@ -90,7 +90,12 @@ const previewUrl = computed(() => {
 })
 
 function goBack() {
-  router.push('/')
+  const siteId = siteStore.currentSite?.id
+  if (siteId) {
+    router.push(`/sites/${siteId}`)
+  } else {
+    router.push('/')
+  }
 }
 
 async function handleSave() {

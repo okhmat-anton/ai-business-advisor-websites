@@ -9,6 +9,14 @@
         </div>
         <v-spacer />
         <v-btn
+          variant="outlined"
+          prepend-icon="mdi-folder-zip-outline"
+          class="mr-3"
+          @click="showZipImport = true"
+        >
+          Import ZIP
+        </v-btn>
+        <v-btn
           color="primary"
           variant="flat"
           prepend-icon="mdi-plus"
@@ -68,6 +76,14 @@
 
             <v-card-actions class="pt-0">
               <v-chip
+                v-if="site.isImported"
+                size="x-small"
+                color="warning"
+                variant="tonal"
+              >
+                Imported
+              </v-chip>
+              <v-chip
                 :color="site.isPublished ? 'success' : 'grey'"
                 size="x-small"
                 variant="tonal"
@@ -110,6 +126,9 @@
         </v-col>
       </v-row>
 
+      <!-- ZIP Import dialog -->
+      <ZipImportDialog v-model="showZipImport" />
+
       <!-- Delete confirm dialog -->
       <ConfirmDialog
         v-model="showDeleteConfirm"
@@ -130,11 +149,13 @@ import { useSiteStore } from '@/stores/siteStore'
 import type { ISite } from '@/types/site'
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import ZipImportDialog from '@/components/site/ZipImportDialog.vue'
 
 const router = useRouter()
 const siteStore = useSiteStore()
 
 const showDeleteConfirm = ref(false)
+const showZipImport = ref(false)
 const deletingSite = ref<ISite | null>(null)
 
 onMounted(async () => {
@@ -142,13 +163,13 @@ onMounted(async () => {
 })
 
 function openSite(siteId: string) {
-  router.push(`/editor/${siteId}`)
+  router.push(`/sites/${siteId}`)
 }
 
 async function createSite() {
   const site = await siteStore.addSite('New Website')
   if (site) {
-    router.push(`/editor/${site.id}`)
+    router.push(`/sites/${site.id}`)
   }
 }
 

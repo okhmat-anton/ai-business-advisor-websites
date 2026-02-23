@@ -1,0 +1,75 @@
+"""
+Application configuration via environment variables.
+"""
+
+from pydantic_settings import BaseSettings
+from typing import List, Optional
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment."""
+
+    # App
+    APP_NAME: str = "AKM Site Builder"
+    DEBUG: bool = False
+    ENVIRONMENT: str = "development"
+    SECRET_KEY: str = "change-me-in-production"
+
+    # JWT (external auth from parent project)
+    JWT_SECRET_KEY: str = "change-me-in-production"
+    JWT_ALGORITHM: str = "HS256"
+
+    # PostgreSQL
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "sitebuilder"
+    POSTGRES_PASSWORD: str = "sitebuilder_password"
+    POSTGRES_DB: str = "sitebuilder_db"
+
+    # MongoDB
+    MONGO_HOST: str = "localhost"
+    MONGO_PORT: int = 27017
+    MONGO_DB: str = "sitebuilder"
+
+    # Redis
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+
+    # CORS
+    CORS_ORIGINS: str = '["http://localhost:10669","http://localhost:3000"]'
+
+    # File upload
+    MAX_UPLOAD_SIZE: int = 100 * 1024 * 1024  # 100MB
+    UPLOAD_DIR: str = "/app/uploads"
+
+    # Publish
+    PUBLISH_DIR: str = "/app/published"
+
+    @property
+    def postgres_url(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+
+    @property
+    def postgres_sync_url(self) -> str:
+        return (
+            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+
+    @property
+    def mongo_url(self) -> str:
+        return f"mongodb://{self.MONGO_HOST}:{self.MONGO_PORT}"
+
+    @property
+    def redis_url(self) -> str:
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
+    class Config:
+        env_file = ".env"
+
+
+settings = Settings()

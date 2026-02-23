@@ -1,0 +1,36 @@
+version: "3.8"
+
+# Production overrides
+services:
+  api:
+    build:
+      target: production
+    restart: always
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+    volumes:
+      - uploads_data:/app/uploads
+      - published_data:/app/published
+
+  worker:
+    build:
+      target: production
+    restart: always
+    command: celery -A app.celery_app worker --loglevel=warning --concurrency=4
+    volumes:
+      - uploads_data:/app/uploads
+      - published_data:/app/published
+
+  nginx:
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: sb-frontend
+    restart: always
+    depends_on:
+      - api

@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { IBlock, IBlockTemplate } from '@/types/block'
 import { BlockCategory } from '@/types/block'
 import type { IHistoryEntry } from '@/types/editor'
-import { fetchPageBlocks, savePageBlocks, fetchBlockTemplates } from '@/api/mock'
+import { fetchPageBlocks, savePageBlocks, fetchBlockTemplates } from '@/api/api'
 
 const MAX_HISTORY = 50
 
@@ -234,6 +234,15 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
+  /** Set blocks directly (e.g. from ZIP import with pre-built content) */
+  function setBlocks(siteId: string, pageId: string, newBlocks: IBlock[]) {
+    currentSiteId.value = siteId
+    currentPageId.value = pageId
+    blocks.value = JSON.parse(JSON.stringify(newBlocks))
+    isDirty.value = true
+    pushHistory('Set blocks')
+  }
+
   return {
     // State
     blocks,
@@ -265,5 +274,6 @@ export const useEditorStore = defineStore('editor', () => {
     reorderBlocks,
     undo,
     redo,
+    setBlocks,
   }
 })

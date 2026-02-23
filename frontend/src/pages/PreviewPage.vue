@@ -18,7 +18,7 @@
       <v-spacer />
 
       <v-btn variant="text" size="small" @click="goBack">
-        Back to Editor
+        {{ siteStore.currentSite?.isImported ? 'Back to Pages' : 'Back to Editor' }}
       </v-btn>
     </div>
 
@@ -68,7 +68,12 @@ const frameStyle = computed(() => {
 function goBack() {
   const siteId = route.params.siteId as string
   const pageId = route.params.pageId as string
-  router.push(`/editor/${siteId}/${pageId}`)
+  // Imported sites go back to site pages list, not editor
+  if (siteStore.currentSite?.isImported) {
+    router.push(`/sites/${siteId}`)
+  } else {
+    router.push(`/editor/${siteId}/${pageId}`)
+  }
 }
 
 onMounted(async () => {
@@ -78,8 +83,9 @@ onMounted(async () => {
   if (siteId && !siteStore.currentSite) {
     await siteStore.loadSite(siteId)
   }
-  if (pageId && editorStore.blocks.length === 0) {
+  if (pageId) {
     siteStore.setCurrentPage(pageId)
+    // Always load blocks for the requested page (previous page blocks may be stale)
     await editorStore.loadBlocks(siteId, pageId)
   }
 })

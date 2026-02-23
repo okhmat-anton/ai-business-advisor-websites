@@ -1,6 +1,30 @@
 tilda_source_codes/
 .env
-*.log
 .env.local
 .env.agent.local
 .env.agent
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Docker volumes
+uploads/
+published/
+
+# Node
+node_modules/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
