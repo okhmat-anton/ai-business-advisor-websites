@@ -114,37 +114,48 @@ echo "  (if this hangs, port 80 is blocked in Lightsail firewall)"
 echo "[5/8] Requesting SSL certificate from Let's Encrypt..."
 echo ""
 
-# Run certbot (show output for debugging)
-if ! sudo certbot certonly --standalone \
+# Clean up broken/incomplete previous attempts
+CERT_DIR="/etc/letsencrypt/live/$DOMAIN"
+if [ -d "$CERT_DIR" ] && [ ! -f "$CERT_DIR/fullchain.pem" ]; then
+    echo "  Cleaning up incomplete previous certificate..."
+    sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
+fi
+
+# Run certbot with verbose output
+echo "--- certbot output start ---"
+CERTBOT_OUTPUT=$(sudo certbot certonly --standalone \
     --non-interactive --agree-tos \
     --register-unsafely-without-email \
-    -d "$DOMAIN"; then
+    --force-renewal \
+    -d "$DOMAIN" \
+    -v 2>&1) || true
+echo "$CERTBOT_OUTPUT"
+echo "--- certbot output end ---"
+echo ""
+
+# Check if cert was actually created
+if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
     echo ""
     echo "================================================================"
-    echo "  ERROR: Certbot failed to obtain certificate!"
+    echo "  ERROR: Certificate was NOT obtained for $DOMAIN"
+    echo ""
+    echo "  Certbot output is above — look for the actual error."
     echo ""
     echo "  Common causes:"
-    echo "  1. Port 80 not open in Lightsail firewall (Networking tab)"
+    echo "  1. Port 80 not open in Lightsail Firewall (Networking tab)"
     echo "  2. DNS not pointing to this server"
     echo "     Domain resolves to: $RESOLVED_IP"
     echo "     This server IP:     $MY_IP"
-    echo "  3. Domain doesn't exist yet"
+    echo "  3. Let's Encrypt rate limit (wait 1 hour)"
     echo ""
-    echo "  Fix the issue and run:  make add-domain DOMAIN=$DOMAIN"
+    echo "  Manual test:"
+    echo "    sudo certbot certonly --standalone -d $DOMAIN -v --dry-run"
+    echo ""
+    echo "  After fixing, run:  make add-domain DOMAIN=$DOMAIN"
     echo "================================================================"
     # Restart nginx on HTTP so site is accessible
-    echo "Restarting nginx on HTTP..."
-    $COMPOSE -f docker-compose.yml -f docker-compose.prod.yml up -d nginx 2>/dev/null || true
-    exit 1
-fi
-
-CERT_DIR="/etc/letsencrypt/live/$DOMAIN"
-
-if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
     echo ""
-    echo "ERROR: Certificate file not found at $CERT_DIR/fullchain.pem"
-    echo "Check certbot output above."
-    # Restart nginx on HTTP
+    echo "Restarting nginx on HTTP..."
     $COMPOSE -f docker-compose.yml -f docker-compose.prod.yml up -d nginx 2>/dev/null || true
     exit 1
 fi
