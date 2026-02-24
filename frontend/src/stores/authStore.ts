@@ -83,7 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
       const t = resolveToken()
       if (!t) return false
 
-      const response = await axios.get(`https://app.akm-advisor.com/api/v1/auth/me`, {
+      const response = await axios.get(`/api/v1/auth/me`, {
         headers: { Authorization: `Bearer ${t}` },
         timeout: 10000,
       })
