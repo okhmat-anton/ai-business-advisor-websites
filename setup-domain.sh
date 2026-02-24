@@ -33,10 +33,46 @@ echo "================================================"
 echo ""
 
 # --------------------------------------------------
+# 0. Pre-flight checks
+# --------------------------------------------------
+
+# Check DNS resolves
+echo "[1/8] Checking DNS for $DOMAIN..."
+RESOLVED_IP=$(dig +short "$DOMAIN" 2>/dev/null | tail -1)
+if [ -z "$RESOLVED_IP" ]; then
+    echo ""
+    echo "ERROR: DNS for $DOMAIN does not resolve!"
+    echo ""
+    echo "Add an A-record at your DNS provider:"
+    echo "  Type:  A"
+    echo "  Name:  $(echo "$DOMAIN" | cut -d. -f1)"
+    echo "  Value: $(curl -s --max-time 3 ifconfig.me 2>/dev/null || echo 'YOUR_SERVER_IP')"
+    echo "  TTL:   300"
+    echo ""
+    echo "Wait a few minutes for DNS to propagate, then run again."
+    exit 1
+fi
+
+# Check DNS points to this server
+MY_IP=$(curl -s --max-time 5 ifconfig.me 2>/dev/null || curl -s --max-time 5 icanhazip.com 2>/dev/null || echo "")
+if [ -n "$MY_IP" ] && [ "$RESOLVED_IP" != "$MY_IP" ]; then
+    echo ""
+    echo "WARNING: $DOMAIN resolves to $RESOLVED_IP but this server's IP is $MY_IP"
+    echo "Make sure the A-record points to this server."
+    read -p "Continue anyway? (y/N) " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+echo "  DNS OK: $DOMAIN → $RESOLVED_IP"
+
+# --------------------------------------------------
 # 1. Install certbot if missing
 # --------------------------------------------------
+echo "[2/8] Checking Certbot..."
 if ! command -v certbot &>/dev/null; then
-    echo "Installing Certbot..."
+    echo "  Installing Certbot..."
     if command -v amazon-linux-extras &>/dev/null; then
         sudo amazon-linux-extras install epel -y
         sudo yum install -y certbot
@@ -47,41 +83,123 @@ if ! command -v certbot &>/dev/null; then
         exit 1
     fi
 fi
+echo "  Certbot OK"
 
 # --------------------------------------------------
-# 2. Stop nginx to free port 80
+# 2. Free port 80
 # --------------------------------------------------
-echo "Stopping nginx container to free port 80..."
+echo "[3/8] Freeing port 80..."
 $COMPOSE stop nginx 2>/dev/null || true
+# Kill anything else on port 80
+sudo fuser -k 80/tcp 2>/dev/null || true
+sleep 1
+
+# Verify port 80 is free
+if sudo lsof -i :80 -sTCP:LISTEN 2>/dev/null | grep -q LISTEN; then
+    echo "ERROR: Port 80 is still in use. Stop the process and run again."
+    sudo lsof -i :80 -sTCP:LISTEN
+    exit 1
+fi
+echo "  Port 80 free"
 
 # --------------------------------------------------
-# 3. Get SSL certificate
+# 3. Check port 80 is reachable from outside
 # --------------------------------------------------
-echo "Requesting SSL certificate from Let's Encrypt..."
-sudo certbot certonly --standalone \
+echo "[4/8] Verifying port 80 is open in firewall..."
+echo "  (if this hangs, port 80 is blocked in Lightsail firewall)"
+
+# --------------------------------------------------
+# 4. Get SSL certificate
+# --------------------------------------------------
+echo "[5/8] Requesting SSL certificate from Let's Encrypt..."
+echo ""
+
+# Run certbot (show output for debugging)
+if ! sudo certbot certonly --standalone \
     --non-interactive --agree-tos \
     --register-unsafely-without-email \
-    -d "$DOMAIN"
+    -d "$DOMAIN"; then
+    echo ""
+    echo "================================================================"
+    echo "  ERROR: Certbot failed to obtain certificate!"
+    echo ""
+    echo "  Common causes:"
+    echo "  1. Port 80 not open in Lightsail firewall (Networking tab)"
+    echo "  2. DNS not pointing to this server"
+    echo "     Domain resolves to: $RESOLVED_IP"
+    echo "     This server IP:     $MY_IP"
+    echo "  3. Domain doesn't exist yet"
+    echo ""
+    echo "  Fix the issue and run:  make add-domain DOMAIN=$DOMAIN"
+    echo "================================================================"
+    # Restart nginx on HTTP so site is accessible
+    echo "Restarting nginx on HTTP..."
+    $COMPOSE -f docker-compose.yml -f docker-compose.prod.yml up -d nginx 2>/dev/null || true
+    exit 1
+fi
 
 CERT_DIR="/etc/letsencrypt/live/$DOMAIN"
 
 if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
-    echo "Error: certificate not found at $CERT_DIR"
-    echo "Check certbot output above for details."
+    echo ""
+    echo "ERROR: Certificate file not found at $CERT_DIR/fullchain.pem"
+    echo "Check certbot output above."
+    # Restart nginx on HTTP
+    $COMPOSE -f docker-compose.yml -f docker-compose.prod.yml up -d nginx 2>/dev/null || true
     exit 1
 fi
 
-echo "✅ Certificate obtained: $CERT_DIR"
+echo ""
+echo "  Certificate obtained: $CERT_DIR"
 
 # --------------------------------------------------
-# 4. Generate nginx SSL config
+# 5. Update docker-compose.prod.yml — add SSL volumes/ports
 # --------------------------------------------------
-echo "Generating nginx config for $DOMAIN..."
+echo "[6/8] Updating docker-compose.prod.yml..."
+
+if ! grep -q "letsencrypt" docker-compose.prod.yml 2>/dev/null; then
+    # Rewrite nginx section with SSL support
+    # Use Python for reliable YAML manipulation
+    python3 - "$DOMAIN" <<'PYEOF'
+import sys
+
+domain = sys.argv[1]
+with open("docker-compose.prod.yml", "r") as f:
+    content = f.read()
+
+# Check if nginx section already has ports/volumes
+if "letsencrypt" not in content:
+    old_nginx = """  nginx:
+    restart: always"""
+    new_nginx = """  nginx:
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro"""
+    content = content.replace(old_nginx, new_nginx)
+    with open("docker-compose.prod.yml", "w") as f:
+        f.write(content)
+    print("  Added SSL ports and letsencrypt volume")
+PYEOF
+else
+    echo "  docker-compose.prod.yml already has letsencrypt config"
+fi
+
+# --------------------------------------------------
+# 6. Generate nginx SSL config
+# --------------------------------------------------
+echo "[7/8] Writing nginx SSL config..."
 
 CONF_FILE="nginx/conf.d/default.conf"
 
+# Backup current config
+cp "$CONF_FILE" "${CONF_FILE}.bak" 2>/dev/null || true
+
 cat > "$CONF_FILE" <<NGINX
 # Auto-generated by setup-domain.sh for $DOMAIN
+# Backup saved as default.conf.bak
 
 upstream api_backend {
     server api:8000;
@@ -90,8 +208,8 @@ upstream api_backend {
 # HTTP → HTTPS redirect
 server {
     listen 80;
-    server_name $DOMAIN;
-    return 301 https://\$host\$request_uri;
+    server_name $DOMAIN _;
+    return 301 https://$DOMAIN\$request_uri;
 }
 
 server {
@@ -145,70 +263,41 @@ server {
 }
 NGINX
 
-echo "✅ Nginx config written to $CONF_FILE"
+echo "  Nginx config: $CONF_FILE"
 
 # --------------------------------------------------
-# 5. Update docker-compose.prod.yml — add SSL volumes/ports
-# --------------------------------------------------
-echo "Updating docker-compose.prod.yml..."
-
-# Check if letsencrypt volume already mounted
-if ! grep -q "letsencrypt" docker-compose.prod.yml 2>/dev/null; then
-    # Add SSL port and certificate volume to nginx service
-    sed -i.bak '/^  nginx:/,/^  [a-z]/{
-        /restart: always/a\
-    ports:\
-      - "80:80"\
-      - "443:443"\
-    volumes:\
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    }' docker-compose.prod.yml
-    rm -f docker-compose.prod.yml.bak
-    echo "✅ Added SSL ports and letsencrypt volume to docker-compose.prod.yml"
-else
-    echo "ℹ docker-compose.prod.yml already has letsencrypt config"
-fi
-
-# --------------------------------------------------
-# 6. Update CORS in .env
+# 7. Update CORS in .env
 # --------------------------------------------------
 if [ -f .env ]; then
-    # Add https domain to CORS if not already there
     if ! grep -q "$DOMAIN" .env; then
         sed -i.bak "s|CORS_ORIGINS=.*|CORS_ORIGINS=[\"https://$DOMAIN\",\"https://app.akm-advisor.com\"]|" .env
         rm -f .env.bak
-        echo "✅ Updated CORS_ORIGINS in .env with https://$DOMAIN"
+        echo "  Updated CORS_ORIGINS in .env"
     fi
 fi
 
 # --------------------------------------------------
-# 7. Rebuild and restart nginx
+# 8. Rebuild and start
 # --------------------------------------------------
-echo "Rebuilding and starting services..."
+echo "[8/8] Starting services with HTTPS..."
 $COMPOSE -f docker-compose.yml -f docker-compose.prod.yml up -d --build nginx
 
 # --------------------------------------------------
-# 8. Setup auto-renewal cron
+# 9. Auto-renewal cron
 # --------------------------------------------------
-echo "Setting up certificate auto-renewal..."
-
 CRON_CMD="0 3 1 */2 * certbot renew --pre-hook \"cd $(pwd) && $COMPOSE stop nginx\" --post-hook \"cd $(pwd) && $COMPOSE start nginx\""
 
-# Add cron only if not already present
 if ! sudo crontab -l 2>/dev/null | grep -q "certbot renew"; then
     (sudo crontab -l 2>/dev/null; echo "$CRON_CMD") | sudo crontab -
-    echo "✅ Auto-renewal cron added (runs every 2 months)"
-else
-    echo "ℹ Auto-renewal cron already exists"
+    echo "  Auto-renewal cron added"
 fi
 
 echo ""
 echo "================================================"
-echo "  ✅ HTTPS setup complete!"
+echo "  HTTPS setup complete!"
 echo ""
 echo "  https://$DOMAIN"
 echo ""
-echo "  Certificate:    $CERT_DIR"
-echo "  Nginx config:   $CONF_FILE"
-echo "  Auto-renewal:   cron every 2 months"
+echo "  Certificate:  $CERT_DIR"
+echo "  Auto-renewal: cron every 2 months"
 echo "================================================"
