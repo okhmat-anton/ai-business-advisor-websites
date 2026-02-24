@@ -14,7 +14,11 @@ const apiClient = axios.create({
 // Request interceptor: attach JWT token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token')
+    // Try to get token from cookie first, then localStorage
+    const match = document.cookie.match(new RegExp('(?:^|; )akm_auth_token=([^;]*)'))
+    const cookieToken = match ? decodeURIComponent(match[1] ?? '') : null
+    const token = cookieToken || localStorage.getItem('auth_token')
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }

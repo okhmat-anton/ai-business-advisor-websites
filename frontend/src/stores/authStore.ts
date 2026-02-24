@@ -56,7 +56,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 2. Cookie (set by parent app on shared .akm-advisor.com domain)
     const cookieToken = getCookie(COOKIE_NAME)
-    if (cookieToken) return cookieToken
+    if (cookieToken) {
+      localStorage.setItem(STORAGE_KEY, cookieToken)
+      return cookieToken
+    }
 
     // 3. localStorage fallback
     return localStorage.getItem(STORAGE_KEY)
@@ -80,8 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
       const t = resolveToken()
       if (!t) return false
 
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1'
-      const response = await axios.get(`${baseUrl}/auth/me`, {
+      const response = await axios.get(`https://app.akm-advisor.com/api/v1/auth/me`, {
         headers: { Authorization: `Bearer ${t}` },
         timeout: 10000,
       })
@@ -90,13 +92,14 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = {
         id: String(response.data.id ?? response.data.user_id ?? ''),
         email: response.data.email ?? '',
-        name: response.data.name ?? response.data.full_name ?? '',
-        company: response.data.company ?? response.data.company_name ?? '',
+        name: response.data.name ?? response.data.full_name ?? response.data.first_name ?? '',
+        company: response.data.company ?? response.data.company_name ?? response.data.tenant_name ?? '',
       }
       // Keep localStorage in sync
       localStorage.setItem(STORAGE_KEY, t)
       return true
-    } catch {
+    } catch (error) {
+      console.error('Session validation failed:', error)
       clearAuth()
       return false
     } finally {
