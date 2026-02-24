@@ -255,30 +255,18 @@ sed -i "s/__DOMAIN__/$DOMAIN/g" "$CONF_FILE"
 
 echo "  Written: $CONF_FILE"
 
-# ==================== Step 6: Update docker-compose + .env ====================
-echo "[6/7] Updating docker-compose.prod.yml and .env..."
+# ==================== Step 6: Update .env ====================
+echo "[6/7] Updating .env..."
 
-# Update docker-compose.prod.yml
-if ! grep -q "letsencrypt" docker-compose.prod.yml 2>/dev/null; then
-    python3 <<PYEOF
-with open("docker-compose.prod.yml", "r") as f:
-    content = f.read()
-old = """  nginx:
-    restart: always"""
-new = """  nginx:
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro"""
-content = content.replace(old, new)
-with open("docker-compose.prod.yml", "w") as f:
-    f.write(content)
-print("  docker-compose.prod.yml updated")
-PYEOF
-else
-    echo "  docker-compose.prod.yml already configured"
+# docker-compose.prod.yml already has port 443 and letsencrypt volume configured.
+# Port 80 comes from base docker-compose.yml via NGINX_PORT in .env.
+echo "  docker-compose.prod.yml — already configured (443 + letsencrypt)"
+
+# Make sure NGINX_PORT=80 for production
+if [ -f .env ]; then
+    sed -i.bak "s|NGINX_PORT=.*|NGINX_PORT=80|" .env
+    rm -f .env.bak
+    echo "  NGINX_PORT=80 in .env"
 fi
 
 # Update CORS in .env
