@@ -3,13 +3,5 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
-
-const authStore = useAuthStore()
-
-onMounted(async () => {
-  // Initialize mock auth
-  await authStore.initAuth()
-})
+// Auth is handled by the router guard (see router/index.ts)
 </script>
