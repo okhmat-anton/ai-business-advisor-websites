@@ -73,6 +73,13 @@ sudo curl -SL "https://github.com/docker/compose/releases/latest/download/docker
   -o /usr/local/lib/docker/cli-plugins/docker-compose
 sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
+# Docker Buildx (required for compose build)
+sudo curl -SL "https://github.com/docker/buildx/releases/latest/download/buildx-v0.21.1.linux-$(uname -m)" \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx 2>/dev/null || \
+sudo curl -SL "https://github.com/docker/buildx/releases/latest/download/buildx-linux-$(uname -m)" \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+
 # Git
 sudo yum install -y git
 
