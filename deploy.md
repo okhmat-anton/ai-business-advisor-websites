@@ -68,10 +68,29 @@ sudo systemctl start docker
 sudo systemctl enable docker
 sudo usermod -aG docker ec2-user
 
+# Определение архитектуры (x86_64 или aarch64)
+ARCH=$(uname -m)
+if [ "$ARCH" = "x86_64" ]; then
+  COMPOSE_ARCH="x86_64"
+  BUILDX_ARCH="amd64"
+elif [ "$ARCH" = "aarch64" ]; then
+  COMPOSE_ARCH="aarch64"
+  BUILDX_ARCH="arm64"
+else
+  COMPOSE_ARCH=$ARCH
+  BUILDX_ARCH=$ARCH
+fi
+
 # Docker Compose (standalone binary)
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64" \
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-${COMPOSE_ARCH}" \
   -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
+
+# Docker Buildx (плагин для сборки)
+sudo mkdir -p /usr/local/lib/docker/cli-plugins
+sudo curl -L "https://github.com/docker/buildx/releases/download/v0.17.1/buildx-v0.17.1.linux-${BUILDX_ARCH}" \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
 
 # Git и Make
 sudo yum install -y git make
