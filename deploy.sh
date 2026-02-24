@@ -27,12 +27,14 @@ else
     COMPOSE="docker-compose"
 fi
 
-# Check .env file
+# Check .env file — auto-generate if missing
 if [ ! -f .env ]; then
-    echo "Creating .env from .env.example..."
-    cp .env.example .env
-    echo "⚠ Please edit .env with your actual settings before running again!"
-    echo "  Especially: SECRET_KEY, JWT_SECRET_KEY, POSTGRES_PASSWORD"
+    echo "No .env found — generating with secure random keys..."
+    bash ./generate-env.sh .env
+    echo ""
+    echo "⚠ Review .env before first launch (especially JWT_SECRET_KEY and CORS_ORIGINS)."
+    echo "  To edit: nano .env"
+    echo "  Then run this script again."
     exit 1
 fi
 
@@ -70,7 +72,7 @@ case $MODE in
         echo ""
         echo "================================================"
         echo "  Production environment is ready!"
-        echo "  App: http://localhost:${NGINX_PORT:-10669}"
+        echo "  App: http://localhost:${NGINX_PORT:-80}"
         echo "================================================"
         ;;
     stop)
