@@ -13,7 +13,7 @@ from app.core import settings
 from app.core.mongodb import MongoDB
 from app.core.redis import close_redis
 from app.core.database import engine, Base
-from app.routers import sites, pages, blocks, uploads
+from app.routers import sites, pages, blocks, uploads, auth
 
 
 @asynccontextmanager
@@ -56,6 +56,7 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Routers
+app.include_router(auth.router, prefix="/api/v1")
 app.include_router(sites.router, prefix="/api/v1")
 app.include_router(pages.router, prefix="/api/v1")
 app.include_router(blocks.router, prefix="/api/v1")

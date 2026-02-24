@@ -29,7 +29,8 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token')
-      window.location.href = '/login'
+      const redirect = encodeURIComponent(window.location.href)
+      window.location.href = `https://app.akm-advisor.com/auth/login?redirect=${redirect}`
     }
     return Promise.reject(error)
   }

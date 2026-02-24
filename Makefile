@@ -36,11 +36,9 @@ lint: ## Lint frontend code
 clean: ## Remove build artifacts
 	rm -rf frontend/dist frontend/node_modules/.tmp
 
-update: ## Git pull, install deps, rebuild and restart dev server
+update: ## Git pull and redeploy production
 	git pull
-	cd frontend && npm install
-	cd frontend && npm run build
-	$(MAKE) dev
+	$(MAKE) deploy-prod
 
 # ============================================
 # Backend
