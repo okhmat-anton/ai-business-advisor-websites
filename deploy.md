@@ -61,30 +61,20 @@ ssh -i ~/Downloads/LightsailDefaultKey-*.pem ec2-user@YOUR_SERVER_IP
 # Обновление системы
 sudo yum update -y
 
-# Docker
-sudo amazon-linux-extras install docker -y
+# Docker (через amazon-linux-extras)
+sudo amazon-linux-extras enable docker
+sudo yum install -y docker
 sudo systemctl start docker
 sudo systemctl enable docker
 sudo usermod -aG docker ec2-user
 
-# Docker Compose v2 (plugin)
-sudo mkdir -p /usr/local/lib/docker/cli-plugins
-sudo curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" \
-  -o /usr/local/lib/docker/cli-plugins/docker-compose
-sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+# Docker Compose (standalone binary)
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64" \
+  -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
 
-# Docker Buildx (required for compose build)
-sudo curl -SL "https://github.com/docker/buildx/releases/latest/download/buildx-v0.21.1.linux-$(uname -m)" \
-  -o /usr/local/lib/docker/cli-plugins/docker-buildx 2>/dev/null || \
-sudo curl -SL "https://github.com/docker/buildx/releases/latest/download/buildx-linux-$(uname -m)" \
-  -o /usr/local/lib/docker/cli-plugins/docker-buildx
-sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
-
-# Git
-sudo yum install -y git
-
-# Make (для Makefile)
-sudo yum install -y make
+# Git и Make
+sudo yum install -y git make
 
 # Перелогиниться (применить группу docker)
 exit
@@ -95,8 +85,8 @@ exit
 ```bash
 ssh -i ~/Downloads/LightsailDefaultKey-*.pem ec2-user@YOUR_SERVER_IP
 
-docker --version          # Docker version 20.x+
-docker compose version    # Docker Compose version v2.x+
+docker --version           # Docker version 20.x+
+docker-compose --version   # Docker Compose version v2.27.x
 git --version
 ```
 

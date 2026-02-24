@@ -27,16 +27,6 @@ else
     COMPOSE="docker-compose"
 fi
 
-# Check docker buildx (required for docker compose build)
-if ! docker buildx version &> /dev/null 2>&1; then
-    echo "Installing Docker Buildx plugin..."
-    BUILDX_URL="https://github.com/docker/buildx/releases/latest/download/buildx-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
-    sudo mkdir -p /usr/local/lib/docker/cli-plugins
-    sudo curl -SL "$BUILDX_URL" -o /usr/local/lib/docker/cli-plugins/docker-buildx
-    sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
-    echo "Buildx $(docker buildx version 2>/dev/null || echo 'installed')"
-fi
-
 # Check .env file — auto-generate if missing
 if [ ! -f .env ]; then
     echo "No .env found — generating with secure random keys..."
@@ -71,8 +61,11 @@ case $MODE in
         ;;
     prod)
         echo "Starting in PRODUCTION mode..."
-        echo "Stopping existing containers..."
-        $COMPOSE -f docker-compose.yml -f docker-compose.prod.yml down 2>/dev/null || true
+        echo ""
+        echo "Stopping containers..."
+        $COMPOSE -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
+        docker stop $(docker ps -q) 2>/dev/null || true
+        echo ""
         echo "Building and starting..."
         $COMPOSE -f docker-compose.yml -f docker-compose.prod.yml up -d --build
         echo ""
