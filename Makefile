@@ -1,6 +1,6 @@
 .PHONY: dev build install clean lint preview update stop help \
        docker-up docker-down docker-build docker-logs docker-status docker-clean \
-       backend-dev backend-install migrate deploy deploy-prod
+       backend-dev backend-install migrate deploy deploy-prod add-domain
 
 # Detect docker compose command
 COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
@@ -89,3 +89,6 @@ deploy: ## Deploy development environment
 
 deploy-prod: ## Deploy production environment
 	./deploy.sh prod
+
+add-domain: ## Setup domain + HTTPS (usage: make add-domain DOMAIN=example.com)
+	./setup-domain.sh $(DOMAIN)

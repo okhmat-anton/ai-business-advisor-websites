@@ -229,114 +229,31 @@ TTL:   300
 
 Проверка: `dig +short builder.ваш-домен.com`
 
-### 10.2. Получение SSL-сертификата
+### 10.2. Автоматическая настройка HTTPS
+
+Одна команда — установит Certbot, получит сертификат, настроит Nginx и автообновление:
 
 ```bash
-# Установка Certbot
-sudo amazon-linux-extras install epel -y
-sudo yum install -y certbot
-
-# Освободить порт 80
 cd ~/ai-business-advisor-websites
-docker compose stop nginx
-
-# Получить сертификат
-sudo certbot certonly --standalone -d builder.ваш-домен.com
-
-# Пути к сертификатам:
-#   /etc/letsencrypt/live/builder.ваш-домен.com/fullchain.pem
-#   /etc/letsencrypt/live/builder.ваш-домен.com/privkey.pem
+make add-domain DOMAIN=builder.ваш-домен.com
 ```
 
-### 10.3. Настройка Nginx для SSL
-
-Обновите `docker-compose.prod.yml` — добавьте сертификаты и порт 443:
-
-```yaml
-  nginx:
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-```
-
-Замените `nginx/conf.d/default.conf`:
-
-```nginx
-upstream api_backend {
-    server api:8000;
-}
-
-# HTTP → HTTPS редирект
-server {
-    listen 80;
-    server_name builder.ваш-домен.com;
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name builder.ваш-домен.com;
-
-    ssl_certificate     /etc/letsencrypt/live/builder.ваш-домен.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/builder.ваш-домен.com/privkey.pem;
-    ssl_protocols       TLSv1.2 TLSv1.3;
-    ssl_ciphers         HIGH:!aNULL:!MD5;
-
-    location /api/ {
-        proxy_pass http://api_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 120s;
-    }
-
-    location /uploads/ {
-        alias /app/uploads/;
-        expires 30d;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location /published/ {
-        alias /app/published/;
-        expires 1h;
-    }
-
-    location / {
-        root /usr/share/nginx/html;
-        index index.html;
-        try_files $uri $uri/ /index.html;
-    }
-
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        root /usr/share/nginx/html;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        try_files $uri =404;
-    }
-}
-```
-
-Перезапустить:
+Или без make:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build nginx
+./setup-domain.sh builder.ваш-домен.com
 ```
 
-### 10.4. Автообновление сертификатов
+Скрипт автоматически:
+1. Установит Certbot (если нет)
+2. Остановит nginx, получит SSL-сертификат от Let's Encrypt
+3. Перепишет `nginx/conf.d/default.conf` с HTTPS + редирект 80→443
+4. Обновит `docker-compose.prod.yml` — добавит порт 443 и volume сертификатов
+5. Обновит `CORS_ORIGINS` в `.env` с вашим доменом
+6. Перезапустит nginx
+7. Добавит cron для автообновления сертификатов (каждые 2 месяца)
 
-```bash
-sudo crontab -e
-```
-
-Добавить:
-
-```
-0 3 1 */2 * certbot renew --pre-hook "cd ~/ai-business-advisor-websites && docker compose stop nginx" --post-hook "cd ~/ai-business-advisor-websites && docker compose start nginx"
-```
+После выполнения: `https://builder.ваш-домен.com`
 
 ---
 
