@@ -130,8 +130,8 @@ echo ""
 
 # Clean up broken previous attempts
 CERT_DIR="/etc/letsencrypt/live/$DOMAIN"
-if [ -d "/etc/letsencrypt/renewal/${DOMAIN}.conf" ] || [ -d "$CERT_DIR" ]; then
-    if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
+if sudo test -f "/etc/letsencrypt/renewal/${DOMAIN}.conf" || sudo test -d "$CERT_DIR"; then
+    if ! sudo test -f "$CERT_DIR/fullchain.pem"; then
         echo "  Cleaning incomplete previous attempt..."
         sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
         sudo rm -rf "$CERT_DIR" 2>/dev/null || true
@@ -157,7 +157,7 @@ set -e
 echo ""
 
 # Verify certificate exists
-if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
+if ! sudo test -f "$CERT_DIR/fullchain.pem"; then
     echo "================================================================"
     echo "  ERROR: SSL certificate was NOT created"
     echo ""
