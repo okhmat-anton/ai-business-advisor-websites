@@ -22,7 +22,5 @@ celery_app.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,
     result_expires=3600,
+    imports=["app.tasks.publish"],
 )
-
-# Auto-discover tasks in app.tasks package
-celery_app.autodiscover_tasks(["app.tasks"])

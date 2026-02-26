@@ -6,14 +6,14 @@ import os
 import json
 from datetime import datetime
 
+from celery import shared_task
 from pymongo import MongoClient
 from jinja2 import Environment, FileSystemLoader
 
-from app.celery_app import celery_app
 from app.core import settings
 
 
-@celery_app.task(bind=True, max_retries=3)
+@shared_task(bind=True, max_retries=3)
 def publish_site_task(self, site_id: str, site_name: str, pages_data: list):
     """
     Generate static HTML for a published site.
