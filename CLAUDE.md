@@ -110,6 +110,47 @@ make help               # List all commands
 - **Auto-save:** Every 5 seconds when dirty (composable)
 - **Publish:** Celery task generates static HTML from block content
 
+## Logs API (for Agent / Debugging)
+
+Server logs are available via REST API at `/api/v1/logs`. Requires JWT auth.
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/logs` | List available services |
+| GET | `/api/v1/logs/app` | Application-level Python/uvicorn logs |
+| GET | `/api/v1/logs/{service}` | Docker container logs for a service |
+
+**Available services:** `api`, `worker`, `postgres`, `mongodb`, `redis`, `nginx`, `frontend`
+
+### Query Parameters
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| tail | int | 100 | Number of last lines (1–5000) |
+| search | string | — | Filter lines containing text (case-insensitive) |
+| level | string | — | Filter by log level: ERROR, WARNING, INFO, DEBUG (app only) |
+| since | string | — | Docker time filter, e.g. `1h`, `30m` (service only) |
+
+### Examples
+
+```bash
+# View last 50 API container logs
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://builder.akm-advisor.com/api/v1/logs/api?tail=50"
+
+# Search for errors in the last hour
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://builder.akm-advisor.com/api/v1/logs/api?search=error&since=1h&tail=200"
+
+# Application-level ERROR logs
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://builder.akm-advisor.com/api/v1/logs/app?level=ERROR&tail=100"
+```
+
+**Note:** Docker socket (`/var/run/docker.sock`) is mounted read-only into the API container to enable log access.
+
 ## Dev Server
 
 Port: **10669** (configured in `vite.config.ts`)

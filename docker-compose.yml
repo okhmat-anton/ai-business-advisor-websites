@@ -75,6 +75,7 @@ services:
       - ./backend:/app
       - uploads_data:/app/uploads
       - published_data:/app/published
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:

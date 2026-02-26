@@ -13,7 +13,7 @@ from app.core import settings
 from app.core.mongodb import MongoDB
 from app.core.redis import close_redis
 from app.core.database import engine, Base
-from app.routers import sites, pages, blocks, uploads, auth
+from app.routers import sites, pages, blocks, uploads, auth, logs
 
 
 @asynccontextmanager
@@ -61,6 +61,7 @@ app.include_router(sites.router, prefix="/api/v1")
 app.include_router(pages.router, prefix="/api/v1")
 app.include_router(blocks.router, prefix="/api/v1")
 app.include_router(uploads.router, prefix="/api/v1")
+app.include_router(logs.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health")
