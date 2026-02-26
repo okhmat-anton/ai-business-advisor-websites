@@ -170,12 +170,12 @@ function inlineAssets(
     }
   )
 
-  // 3. Replace remaining src="" and href="" with data URLs (images, favicons, etc.)
+  // 3. Replace src, href, and data-* attributes with asset paths (images, favicons, etc.)
+  //    Covers: src, href, data-original, data-src, data-bg-src, data-srcset, poster, etc.
   html = html.replace(
-    /(src|href)=["']([^"']+)["']/gi,
+    /(src|href|data-original|data-src|data-bg-src|data-lazy-src|poster|data-srcset)=["']([^"']+)["']/gi,
     (match, attr, path) => {
       if (isExternalUrl(path)) return match
-      // Skip already-processed inline content (data URLs were already inserted)
       if (path.startsWith('data:')) return match
 
       const resolvedPath = resolveAssetPath(htmlDir, path)
