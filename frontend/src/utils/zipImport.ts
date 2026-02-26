@@ -286,11 +286,19 @@ function resolveAssetPath(dir: string, relativePath: string): string {
  */
 function detectRootPrefix(zip: JSZip): string {
   const paths: string[] = []
-  zip.forEach((path) => paths.push(path))
+  zip.forEach((relativePath) => {
+    // Skip macOS resource forks and hidden metadata (same as main loop)
+    if (relativePath.startsWith('__MACOSX/') || relativePath.includes('/__MACOSX/')) return
+    const basename = relativePath.split('/').pop() || ''
+    if (basename.startsWith('._') || basename === '.DS_Store') return
+    paths.push(relativePath)
+  })
 
   if (paths.length === 0) return ''
 
-  const firstPath = paths[0]
+  // Find the first non-directory entry (usually an HTML or asset file)
+  const firstFile = paths.find((p) => !p.endsWith('/'))
+  const firstPath = firstFile || paths[0]
   if (!firstPath) return ''
   const firstSlash = firstPath.indexOf('/')
   if (firstSlash === -1) return ''

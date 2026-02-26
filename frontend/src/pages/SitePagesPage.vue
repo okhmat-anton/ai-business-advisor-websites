@@ -126,9 +126,20 @@
                   </v-chip>
                 </v-list-item-title>
 
-                <v-list-item-subtitle>
-                  <span class="text-grey">/{{ page.slug || '' }}</span>
-                  <span class="mx-2">&bull;</span>
+                <v-list-item-subtitle class="d-flex align-center flex-wrap">
+                  <v-chip
+                    size="x-small"
+                    variant="tonal"
+                    color="primary"
+                    class="mr-1"
+                    style="cursor:pointer"
+                    prepend-icon="mdi-link"
+                    @click.stop="editSlug(page)"
+                  >
+                    /{{ page.slug || '(no url)' }}
+                    <v-icon end size="12">mdi-pencil</v-icon>
+                  </v-chip>
+                  <span class="mx-1">&bull;</span>
                   <v-chip
                     :color="page.status === 'published' ? 'success' : 'grey'"
                     size="x-small"
@@ -588,6 +599,34 @@
           </v-tabs-window>
         </v-card>
       </v-dialog>
+      <!-- Edit slug dialog -->
+      <v-dialog v-model="showEditSlug" max-width="440" persistent>
+        <v-card>
+          <v-card-title class="pa-4">Page URL</v-card-title>
+          <v-card-text class="pa-4 pt-0">
+            <v-text-field
+              v-model="editSlugValue"
+              label="URL Path"
+              variant="outlined"
+              density="compact"
+              prefix="/"
+              hide-details="auto"
+              autofocus
+              placeholder="contact-us"
+              @keyup.enter="saveSlug"
+            />
+            <div class="text-caption text-grey mt-2">
+              Lowercase letters, numbers, hyphens. Example: <code>contact-us</code>
+            </div>
+          </v-card-text>
+          <v-card-actions class="pa-4 pt-0">
+            <v-spacer />
+            <v-btn variant="text" @click="showEditSlug = false">Cancel</v-btn>
+            <v-btn color="primary" variant="flat" @click="saveSlug">Save</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
     <!-- Snackbar for notifications -->
     <v-snackbar v-model="showSnackbar" :color="snackbarColor" timeout="3000" location="bottom right">
       {{ snackbarText }}
@@ -625,6 +664,36 @@ const newPageSlug = ref('')
 // Edit page meta
 const showEditPage = ref(false)
 const editingPage = ref<IPage | null>(null)
+
+// Edit slug inline
+const showEditSlug = ref(false)
+const editSlugPage = ref<IPage | null>(null)
+const editSlugValue = ref('')
+
+function editSlug(page: IPage) {
+  editSlugPage.value = page
+  // Strip common folder prefix artifact (e.g. 'folder/contact-us' → 'contact-us')
+  const slug = page.slug || ''
+  const segments = slug.split('/')
+  editSlugValue.value = segments[segments.length - 1] !== '' ? segments[segments.length - 1] : slug
+  showEditSlug.value = true
+}
+
+async function saveSlug() {
+  if (!siteStore.currentSite || !editSlugPage.value) return
+  const cleanSlug = editSlugValue.value
+    .trim()
+    .replace(/^[\/]+|[\/]+$/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-/]/g, '-')
+  await siteStore.savePage(siteStore.currentSite.id, {
+    ...editSlugPage.value,
+    slug: cleanSlug,
+  })
+  showEditSlug.value = false
+  editSlugPage.value = null
+  notify('URL updated')
+}
 
 // Delete
 const showDeleteConfirm = ref(false)

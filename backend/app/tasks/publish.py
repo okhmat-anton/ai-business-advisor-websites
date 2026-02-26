@@ -37,6 +37,24 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
         os.makedirs(site_dir, exist_ok=True)
         logger.info(f"PUBLISH: output dir={site_dir}")
 
+        # Detect and strip common directory prefix from slugs
+        # (artifact from ZIP folder structure, e.g. 'akm-advisor-landing/')
+        non_home_slugs = [
+            p.get("slug", "").strip("/")
+            for p in pages_data
+            if not p.get("is_home_page")
+            and p.get("slug", "").strip("/") not in ("", "index")
+        ]
+        slug_prefix = ""
+        if non_home_slugs:
+            first = non_home_slugs[0]
+            slash = first.find("/")
+            if slash > 0:
+                candidate = first[: slash + 1]
+                if all(s.startswith(candidate) for s in non_home_slugs):
+                    slug_prefix = candidate
+                    logger.info(f"PUBLISH: stripping common slug prefix '{slug_prefix}'")
+
         # Setup Jinja2 template
         template_dir = os.path.join(os.path.dirname(__file__), "..", "templates")
         if os.path.exists(template_dir):
@@ -48,7 +66,12 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
         # Generate HTML for each page
         for page_info in pages_data:
             page_id = page_info["page_id"]
-            slug = page_info.get("slug", "/")
+            raw_slug = page_info.get("slug", "/")
+            # Strip detected common prefix (e.g. 'akm-advisor-landing/')
+            clean = raw_slug.strip("/")
+            if slug_prefix and clean.startswith(slug_prefix):
+                clean = clean[len(slug_prefix):]
+            slug = clean or "/"
             title = page_info.get("title", "Page")
             is_home_page = page_info.get("is_home_page", False)
             html_content = page_info.get("html_content")  # pre-rendered HTML from import
