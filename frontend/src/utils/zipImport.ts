@@ -31,6 +31,12 @@ export async function parseZipFile(file: File): Promise<ZipImportResult> {
 
   zip.forEach((relativePath, entry) => {
     if (entry.dir) return
+    // Skip macOS resource forks and hidden metadata files
+    if (relativePath.startsWith('__MACOSX/') || relativePath.includes('/__MACOSX/')) return
+    const basename = relativePath.split('/').pop() || ''
+    if (basename.startsWith('._')) return
+    if (basename === '.DS_Store') return
+
     const cleanPath = relativePath.replace(rootPrefix, '')
     if (!cleanPath) return
 
