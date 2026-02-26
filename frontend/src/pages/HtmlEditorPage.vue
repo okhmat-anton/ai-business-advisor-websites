@@ -63,15 +63,7 @@
             <v-icon size="16">mdi-content-copy</v-icon>
           </v-btn>
         </div>
-        <textarea
-          ref="codeEditor"
-          v-model="htmlCode"
-          class="code-textarea"
-          spellcheck="false"
-          wrap="off"
-          @input="onCodeChange"
-          @keydown.tab.prevent="insertTab"
-        />
+        <div ref="editorContainer" class="code-editor-container" />
       </div>
 
       <!-- Preview panel -->
@@ -104,10 +96,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, shallowRef, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSiteStore } from '@/stores/siteStore'
 import { DEVICE_SIZES } from '@/types/editor'
+
+// CodeMirror imports
+import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection, rectangularSelection, crosshairCursor, dropCursor } from '@codemirror/view'
+import { EditorState } from '@codemirror/state'
+import { html } from '@codemirror/lang-html'
+import { oneDark } from '@codemirror/theme-one-dark'
+import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirror/commands'
+import { syntaxHighlighting, defaultHighlightStyle, indentOnInput, bracketMatching, foldGutter, foldKeymap } from '@codemirror/language'
+import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from '@codemirror/autocomplete'
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
+import { lintKeymap } from '@codemirror/lint'
 
 const route = useRoute()
 const router = useRouter()
@@ -122,8 +125,8 @@ const deviceMode = ref('desktop')
 const layout = ref<'split' | 'code' | 'preview'>('split')
 
 // Refs
-const codeEditor = ref<HTMLTextAreaElement | null>(null)
-const previewIframe = ref<HTMLIFrameElement | null>(null)
+const editorContainer = ref<HTMLDivElement | null>(null)
+const editorView = shallowRef<EditorView | null>(null)
 
 // Snackbar
 const showSnackbar = ref(false)
@@ -146,14 +149,99 @@ const previewContainerStyle = computed(() => {
   }
 })
 
-function onCodeChange() {
-  isDirty.value = htmlCode.value !== originalHtml.value
+/** Initialize CodeMirror 6 editor */
+function initEditor(initialContent: string) {
+  if (!editorContainer.value) return
 
-  // Debounced preview update (300ms)
-  if (previewTimeout) clearTimeout(previewTimeout)
-  previewTimeout = setTimeout(() => {
-    previewHtml.value = htmlCode.value
-  }, 300)
+  const updateListener = EditorView.updateListener.of((update) => {
+    if (update.docChanged) {
+      htmlCode.value = update.state.doc.toString()
+      isDirty.value = htmlCode.value !== originalHtml.value
+
+      // Debounced preview update
+      if (previewTimeout) clearTimeout(previewTimeout)
+      previewTimeout = setTimeout(() => {
+        previewHtml.value = htmlCode.value
+      }, 300)
+    }
+  })
+
+  // Save shortcut (Ctrl/Cmd+S)
+  const saveKeymap = keymap.of([{
+    key: 'Mod-s',
+    run: () => {
+      if (isDirty.value) save()
+      return true
+    },
+  }])
+
+  const state = EditorState.create({
+    doc: initialContent,
+    extensions: [
+      // Core
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      history(),
+      foldGutter(),
+      drawSelection(),
+      dropCursor(),
+      EditorState.allowMultipleSelections.of(true),
+      indentOnInput(),
+      bracketMatching(),
+      closeBrackets(),
+      autocompletion(),
+      rectangularSelection(),
+      crosshairCursor(),
+      highlightActiveLine(),
+      highlightSelectionMatches(),
+
+      // Keymaps
+      saveKeymap,
+      keymap.of([
+        ...closeBracketsKeymap,
+        ...defaultKeymap,
+        ...searchKeymap,
+        ...historyKeymap,
+        ...foldKeymap,
+        ...completionKeymap,
+        ...lintKeymap,
+        indentWithTab,
+      ]),
+
+      // Language — HTML with embedded CSS & JS highlighting
+      html(),
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+
+      // Theme
+      oneDark,
+      EditorView.theme({
+        '&': { height: '100%', fontSize: '13px' },
+        '.cm-scroller': { overflow: 'auto', fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace" },
+        '.cm-gutters': { backgroundColor: '#1e1e1e', borderRight: '1px solid #333' },
+        '.cm-activeLineGutter': { backgroundColor: '#2a2a2a' },
+      }),
+
+      // Change listener
+      updateListener,
+
+      // Tab size
+      EditorState.tabSize.of(2),
+    ],
+  })
+
+  editorView.value = new EditorView({
+    state,
+    parent: editorContainer.value,
+  })
+}
+
+/** Set editor content programmatically (without triggering change events) */
+function setEditorContent(content: string) {
+  const view = editorView.value
+  if (!view) return
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: content },
+  })
 }
 
 function refreshPreview() {
@@ -163,44 +251,27 @@ function refreshPreview() {
   }, 50)
 }
 
-function insertTab(e: KeyboardEvent) {
-  const textarea = e.target as HTMLTextAreaElement
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  htmlCode.value = htmlCode.value.substring(0, start) + '  ' + htmlCode.value.substring(end)
-  // Restore cursor position
-  setTimeout(() => {
-    textarea.selectionStart = textarea.selectionEnd = start + 2
-  }, 0)
-  onCodeChange()
-}
-
 function formatHtml() {
-  // Simple HTML formatting: indent nested tags
   try {
     let formatted = htmlCode.value
-    // Basic formatting: add newlines after closing tags and before opening tags
     formatted = formatted
       .replace(/>\s*</g, '>\n<')
       .replace(/(<[^/][^>]*>)\n/g, '$1\n')
 
-    // Re-indent
     const lines = formatted.split('\n')
     let indent = 0
     const result: string[] = []
     for (const line of lines) {
       const trimmed = line.trim()
       if (!trimmed) continue
-      // Decrease indent for closing tags
       if (trimmed.startsWith('</')) indent = Math.max(0, indent - 1)
       result.push('  '.repeat(indent) + trimmed)
-      // Increase indent for opening tags (not self-closing)
       if (trimmed.match(/^<[^/!][^>]*[^/]>/) && !trimmed.match(/^<(br|hr|img|input|meta|link)/i)) {
         indent++
       }
     }
-    htmlCode.value = result.join('\n')
-    onCodeChange()
+    const newCode = result.join('\n')
+    setEditorContent(newCode)
     notify('HTML formatted', 'success')
   } catch {
     notify('Format failed', 'error')
@@ -245,14 +316,6 @@ function notify(text: string, color = 'success') {
   showSnackbar.value = true
 }
 
-// Keyboard shortcuts
-function onKeyDown(e: KeyboardEvent) {
-  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-    e.preventDefault()
-    if (isDirty.value) save()
-  }
-}
-
 onMounted(async () => {
   const siteId = route.params.siteId as string
   const pageId = route.params.pageId as string
@@ -271,20 +334,23 @@ onMounted(async () => {
   originalHtml.value = content
   previewHtml.value = content
 
-  document.addEventListener('keydown', onKeyDown)
+  // Initialize CodeMirror after DOM is ready
+  await nextTick()
+  initEditor(content)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', onKeyDown)
   if (previewTimeout) clearTimeout(previewTimeout)
+  editorView.value?.destroy()
 })
 
 // Watch for page changes (navigating between pages)
 watch(() => siteStore.currentPage, (page) => {
   if (page?.htmlContent !== undefined) {
-    htmlCode.value = page.htmlContent || ''
-    originalHtml.value = page.htmlContent || ''
-    previewHtml.value = page.htmlContent || ''
+    const content = page.htmlContent || ''
+    originalHtml.value = content
+    previewHtml.value = content
+    setEditorContent(content)
     isDirty.value = false
   }
 })
@@ -342,25 +408,17 @@ watch(() => siteStore.currentPage, (page) => {
   flex-shrink: 0;
 }
 
-.code-textarea {
+.code-editor-container {
   flex: 1;
-  width: 100%;
-  resize: none;
-  border: none;
-  outline: none;
-  padding: 16px;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #d4d4d4;
-  background: #1e1e1e;
-  tab-size: 2;
-  white-space: pre;
-  overflow: auto;
+  overflow: hidden;
 }
 
-.code-textarea:focus {
-  outline: none;
+.code-editor-container :deep(.cm-editor) {
+  height: 100%;
+}
+
+.code-editor-container :deep(.cm-scroller) {
+  overflow: auto;
 }
 
 .preview-panel {
