@@ -742,3 +742,53 @@ export async function publishSite(siteId: string): Promise<boolean> {
   persistSites()
   return true
 }
+
+// ========== Domains (mock stubs) ==========
+
+export async function addDomain(siteId: string, domainName: string): Promise<import('@/types/site').IDomain> {
+  await delay(300)
+  const site = mockSites.find((s) => s.id === siteId)
+  if (!site) throw new Error('Site not found')
+  const domain: import('@/types/site').IDomain = {
+    id: uuidv4(),
+    siteId,
+    domainName,
+    sslStatus: 'none',
+    isPrimary: false,
+    isVerified: false,
+    createdAt: new Date().toISOString(),
+  }
+  site.domains.push(domain)
+  persistSites()
+  return domain
+}
+
+export async function removeDomain(siteId: string, domainId: string): Promise<boolean> {
+  await delay(300)
+  const site = mockSites.find((s) => s.id === siteId)
+  if (!site) return false
+  site.domains = site.domains.filter((d) => d.id !== domainId)
+  persistSites()
+  return true
+}
+
+export async function verifyDomain(siteId: string, domainId: string): Promise<import('./real').DomainVerifyResult> {
+  await delay(1000)
+  return {
+    isVerified: false,
+    domainName: 'example.com',
+    resolvedIps: [],
+    expectedIp: '127.0.0.1',
+    message: 'Mock: DNS verification not available in mock mode',
+  }
+}
+
+export async function enableSsl(siteId: string, domainId: string): Promise<{ status: string; message: string }> {
+  await delay(1000)
+  return { status: 'error', message: 'Mock: SSL not available in mock mode' }
+}
+
+export async function fetchServerInfo(): Promise<{ serverIp: string }> {
+  await delay(100)
+  return { serverIp: '127.0.0.1' }
+}

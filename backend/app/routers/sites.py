@@ -3,6 +3,10 @@ Sites API router - CRUD operations for websites.
 """
 
 import uuid
+import socket
+import asyncio
+import subprocess
+import logging
 from datetime import datetime
 from typing import List
 
@@ -13,11 +17,15 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.auth import get_current_user, CurrentUser
+from app.core import settings
 from app.models import Site, Page, Domain
 from app.schemas import (
     SiteResponse, SiteCreateRequest, SiteUpdateRequest,
-    PageResponse, SeoSchema, DomainResponse, GlobalSettingsSchema,
+    PageResponse, SeoSchema, DomainResponse, DomainCreateRequest,
+    DomainVerifyResponse, GlobalSettingsSchema,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
@@ -241,3 +249,244 @@ async def publish_site(
 
     # TODO: trigger Celery task to generate static HTML
     return {"status": "published"}
+
+
+# ========== Domain Management ==========
+
+async def _get_site_for_user(
+    site_id: str, user: CurrentUser, db: AsyncSession
+) -> Site:
+    """Helper: load site owned by user or raise 404."""
+    result = await db.execute(
+        select(Site)
+        .where(Site.id == uuid.UUID(site_id), Site.user_id == user.user_id)
+        .options(selectinload(Site.pages), selectinload(Site.domains))
+    )
+    site = result.scalar_one_or_none()
+    if not site:
+        raise HTTPException(status_code=404, detail="Site not found")
+    return site
+
+
+@router.get("/{site_id}/domains", response_model=List[DomainResponse])
+async def list_domains(
+    site_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all domains for a site."""
+    site = await _get_site_for_user(site_id, user, db)
+    return [_domain_to_response(d) for d in site.domains]
+
+
+@router.post("/{site_id}/domains", response_model=DomainResponse, status_code=201)
+async def add_domain(
+    site_id: str,
+    data: DomainCreateRequest,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Add a custom domain to a site."""
+    site = await _get_site_for_user(site_id, user, db)
+
+    # Normalize domain name
+    domain_name = data.domainName.strip().lower()
+    if domain_name.startswith("http://") or domain_name.startswith("https://"):
+        domain_name = domain_name.split("://", 1)[1]
+    domain_name = domain_name.rstrip("/")
+
+    # Check uniqueness
+    existing = await db.execute(
+        select(Domain).where(Domain.domain_name == domain_name)
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Domain '{domain_name}' is already registered",
+        )
+
+    domain = Domain(
+        site_id=site.id,
+        domain_name=domain_name,
+        is_primary=data.isPrimary or False,
+    )
+    db.add(domain)
+    await db.flush()
+    await db.refresh(domain)
+    return _domain_to_response(domain)
+
+
+@router.delete("/{site_id}/domains/{domain_id}", status_code=204)
+async def remove_domain(
+    site_id: str,
+    domain_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove a custom domain from a site."""
+    site = await _get_site_for_user(site_id, user, db)
+    result = await db.execute(
+        select(Domain).where(
+            Domain.id == uuid.UUID(domain_id),
+            Domain.site_id == site.id,
+        )
+    )
+    domain = result.scalar_one_or_none()
+    if not domain:
+        raise HTTPException(status_code=404, detail="Domain not found")
+    await db.delete(domain)
+
+
+@router.post("/{site_id}/domains/{domain_id}/verify", response_model=DomainVerifyResponse)
+async def verify_domain(
+    site_id: str,
+    domain_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify that a domain's A record points to our server IP."""
+    site = await _get_site_for_user(site_id, user, db)
+    result = await db.execute(
+        select(Domain).where(
+            Domain.id == uuid.UUID(domain_id),
+            Domain.site_id == site.id,
+        )
+    )
+    domain = result.scalar_one_or_none()
+    if not domain:
+        raise HTTPException(status_code=404, detail="Domain not found")
+
+    expected_ip = settings.SERVER_IP
+    if not expected_ip:
+        raise HTTPException(
+            status_code=500,
+            detail="SERVER_IP is not configured on the server",
+        )
+
+    # Resolve domain DNS in a thread to avoid blocking
+    loop = asyncio.get_event_loop()
+    try:
+        resolved_ips = await loop.run_in_executor(
+            None,
+            lambda: [r[4][0] for r in socket.getaddrinfo(domain.domain_name, None, socket.AF_INET)],
+        )
+        resolved_ips = list(set(resolved_ips))  # deduplicate
+    except socket.gaierror:
+        resolved_ips = []
+
+    is_verified = expected_ip in resolved_ips
+
+    # Update DB
+    domain.is_verified = is_verified
+    await db.flush()
+
+    if is_verified:
+        message = f"Domain '{domain.domain_name}' is correctly pointing to {expected_ip}"
+    elif resolved_ips:
+        message = (
+            f"Domain '{domain.domain_name}' points to {', '.join(resolved_ips)}, "
+            f"but expected {expected_ip}. Update your A record."
+        )
+    else:
+        message = (
+            f"Could not resolve '{domain.domain_name}'. "
+            f"Add an A record pointing to {expected_ip}."
+        )
+
+    return DomainVerifyResponse(
+        isVerified=is_verified,
+        domainName=domain.domain_name,
+        resolvedIps=resolved_ips,
+        expectedIp=expected_ip,
+        message=message,
+    )
+
+
+@router.post("/{site_id}/domains/{domain_id}/ssl")
+async def enable_ssl(
+    site_id: str,
+    domain_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Request SSL certificate via certbot for a verified domain."""
+    site = await _get_site_for_user(site_id, user, db)
+    result = await db.execute(
+        select(Domain).where(
+            Domain.id == uuid.UUID(domain_id),
+            Domain.site_id == site.id,
+        )
+    )
+    domain = result.scalar_one_or_none()
+    if not domain:
+        raise HTTPException(status_code=404, detail="Domain not found")
+
+    if not domain.is_verified:
+        raise HTTPException(
+            status_code=400,
+            detail="Domain must be verified before enabling SSL. Run verification first.",
+        )
+
+    if domain.ssl_status == "active":
+        return {"status": "active", "message": "SSL is already active for this domain"}
+
+    # Mark as pending
+    domain.ssl_status = "pending"
+    await db.flush()
+
+    # Run certbot in a subprocess
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(None, _run_certbot, domain.domain_name)
+        if result["success"]:
+            domain.ssl_status = "active"
+            await db.flush()
+            return {
+                "status": "active",
+                "message": f"SSL certificate obtained for {domain.domain_name}",
+            }
+        else:
+            domain.ssl_status = "error"
+            await db.flush()
+            logger.error(f"Certbot failed for {domain.domain_name}: {result['error']}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to obtain SSL certificate: {result['error']}",
+            )
+    except Exception as e:
+        domain.ssl_status = "error"
+        await db.flush()
+        logger.error(f"SSL error for {domain.domain_name}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"SSL certificate request failed: {str(e)}",
+        )
+
+
+def _run_certbot(domain_name: str) -> dict:
+    """Run certbot to obtain an SSL certificate. Runs in a thread."""
+    try:
+        result = subprocess.run(
+            [
+                "certbot", "certonly",
+                "--nginx",
+                "-d", domain_name,
+                "--non-interactive",
+                "--agree-tos",
+                "--email", "admin@akm-advisor.com",
+                "--no-eff-email",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode == 0:
+            return {"success": True}
+        else:
+            return {"success": False, "error": result.stderr or result.stdout}
+    except FileNotFoundError:
+        return {"success": False, "error": "certbot is not installed on the server"}
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "certbot timed out (120s)"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

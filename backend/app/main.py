@@ -91,3 +91,9 @@ app.include_router(logs.router, prefix="/api/v1")
 async def health_check():
     """Health check endpoint."""
     return {"status": "ok", "service": settings.APP_NAME}
+
+
+@app.get("/api/v1/server-info")
+async def server_info():
+    """Return server IP for DNS configuration instructions."""
+    return {"serverIp": settings.SERVER_IP or ""}

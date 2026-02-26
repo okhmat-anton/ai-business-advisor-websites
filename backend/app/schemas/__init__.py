@@ -89,6 +89,11 @@ class PageUpdateRequest(BaseModel):
 
 # ========== Domains ==========
 
+class DomainCreateRequest(BaseModel):
+    domainName: str = Field(..., min_length=3, max_length=253)
+    isPrimary: Optional[bool] = False
+
+
 class DomainResponse(BaseModel):
     id: str
     siteId: Optional[str] = None
@@ -98,6 +103,14 @@ class DomainResponse(BaseModel):
     isPrimary: Optional[bool] = False
     isVerified: Optional[bool] = False
     createdAt: Optional[str] = None
+
+
+class DomainVerifyResponse(BaseModel):
+    isVerified: bool
+    domainName: str
+    resolvedIps: List[str] = []
+    expectedIp: str
+    message: str
 
 
 # ========== Global Settings ==========

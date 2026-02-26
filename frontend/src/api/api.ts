@@ -5,8 +5,9 @@
  * Set VITE_USE_MOCK=false in .env or .env.local to use the real backend.
  */
 
-import type { ISite, IPage } from '@/types/site'
+import type { ISite, IPage, IDomain } from '@/types/site'
 import type { IBlock, IBlockTemplate } from '@/types/block'
+import type { DomainVerifyResult } from './real'
 
 const useMock = import.meta.env.VITE_USE_MOCK !== 'false'
 
@@ -24,6 +25,11 @@ type SavePageBlocks = (pageId: string, blocks: IBlock[]) => Promise<boolean>
 type FetchBlockTemplates = () => Promise<IBlockTemplate[]>
 type PublishPage = (siteId: string, pageId: string) => Promise<boolean>
 type PublishSite = (siteId: string) => Promise<boolean>
+type AddDomain = (siteId: string, domainName: string) => Promise<IDomain>
+type RemoveDomain = (siteId: string, domainId: string) => Promise<boolean>
+type VerifyDomain = (siteId: string, domainId: string) => Promise<DomainVerifyResult>
+type EnableSsl = (siteId: string, domainId: string) => Promise<{ status: string; message: string }>
+type FetchServerInfo = () => Promise<{ serverIp: string }>
 
 let _fetchSites: FetchSites
 let _fetchSite: FetchSite
@@ -38,6 +44,11 @@ let _savePageBlocks: SavePageBlocks
 let _fetchBlockTemplates: FetchBlockTemplates
 let _publishPage: PublishPage
 let _publishSite: PublishSite
+let _addDomain: AddDomain
+let _removeDomain: RemoveDomain
+let _verifyDomain: VerifyDomain
+let _enableSsl: EnableSsl
+let _fetchServerInfo: FetchServerInfo
 
 if (useMock) {
   const m = await import('./mock')
@@ -54,6 +65,11 @@ if (useMock) {
   _fetchBlockTemplates = m.fetchBlockTemplates
   _publishPage = m.publishPage
   _publishSite = m.publishSite
+  _addDomain = m.addDomain
+  _removeDomain = m.removeDomain
+  _verifyDomain = m.verifyDomain
+  _enableSsl = m.enableSsl
+  _fetchServerInfo = m.fetchServerInfo
 } else {
   const r = await import('./real')
   _fetchSites = r.fetchSites
@@ -69,6 +85,11 @@ if (useMock) {
   _fetchBlockTemplates = r.fetchBlockTemplates
   _publishPage = r.publishPage
   _publishSite = r.publishSite
+  _addDomain = r.addDomain
+  _removeDomain = r.removeDomain
+  _verifyDomain = r.verifyDomain
+  _enableSsl = r.enableSsl
+  _fetchServerInfo = r.fetchServerInfo
 }
 
 export const fetchSites = _fetchSites
@@ -84,3 +105,8 @@ export const savePageBlocks = _savePageBlocks
 export const fetchBlockTemplates = _fetchBlockTemplates
 export const publishPage = _publishPage
 export const publishSite = _publishSite
+export const addDomain = _addDomain
+export const removeDomain = _removeDomain
+export const verifyDomain = _verifyDomain
+export const enableSsl = _enableSsl
+export const fetchServerInfo = _fetchServerInfo

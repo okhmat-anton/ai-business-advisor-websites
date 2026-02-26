@@ -4,7 +4,7 @@
  */
 
 import apiClient from './index'
-import type { ISite, IPage } from '@/types/site'
+import type { ISite, IPage, IDomain } from '@/types/site'
 import type { IBlock, IBlockTemplate } from '@/types/block'
 
 // ========== Sites ==========
@@ -124,5 +124,44 @@ export async function uploadFile(file: File): Promise<{ url: string; filename: s
   const { data } = await apiClient.post('/uploads', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
+  return data
+}
+
+// ========== Domains ==========
+
+export async function addDomain(siteId: string, domainName: string): Promise<IDomain> {
+  const { data } = await apiClient.post(`/sites/${siteId}/domains`, { domainName })
+  return data
+}
+
+export async function removeDomain(siteId: string, domainId: string): Promise<boolean> {
+  try {
+    await apiClient.delete(`/sites/${siteId}/domains/${domainId}`)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export interface DomainVerifyResult {
+  isVerified: boolean
+  domainName: string
+  resolvedIps: string[]
+  expectedIp: string
+  message: string
+}
+
+export async function verifyDomain(siteId: string, domainId: string): Promise<DomainVerifyResult> {
+  const { data } = await apiClient.post(`/sites/${siteId}/domains/${domainId}/verify`)
+  return data
+}
+
+export async function enableSsl(siteId: string, domainId: string): Promise<{ status: string; message: string }> {
+  const { data } = await apiClient.post(`/sites/${siteId}/domains/${domainId}/ssl`)
+  return data
+}
+
+export async function fetchServerInfo(): Promise<{ serverIp: string }> {
+  const { data } = await apiClient.get('/server-info')
   return data
 }
