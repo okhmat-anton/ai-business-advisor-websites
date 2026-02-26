@@ -50,6 +50,8 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
             page_id = page_info["page_id"]
             slug = page_info.get("slug", "/")
             title = page_info.get("title", "Page")
+            is_home_page = page_info.get("is_home_page", False)
+            html_content = page_info.get("html_content")  # pre-rendered HTML from import
 
             # Get blocks from MongoDB
             blocks = list(
@@ -58,10 +60,13 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
                     {"_id": 0, "page_id": 0},
                 ).sort("order", 1)
             )
-            logger.info(f"PUBLISH: page '{title}' (id={page_id}) has {len(blocks)} blocks")
+            logger.info(f"PUBLISH: page '{title}' (id={page_id}) slug='{slug}' is_home={is_home_page} blocks={len(blocks)} has_html={bool(html_content)}")
 
-            # Generate HTML
-            if template:
+            # Generate HTML: prefer pre-rendered html_content (imported sites),
+            # then Jinja template with blocks, then fallback
+            if html_content:
+                html = html_content
+            elif template and blocks:
                 html = template.render(
                     title=title,
                     site_name=site_name,
@@ -71,8 +76,8 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
             else:
                 html = _generate_fallback_html(title, site_name, blocks)
 
-            # Write file
-            if slug == "/":
+            # Home page or slug="/" always writes to site root index.html
+            if is_home_page or slug == "/":
                 filepath = os.path.join(site_dir, "index.html")
             else:
                 page_dir = os.path.join(site_dir, slug.strip("/"))

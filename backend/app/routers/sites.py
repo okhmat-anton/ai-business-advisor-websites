@@ -255,6 +255,8 @@ async def publish_site(
             "page_id": str(page.id),
             "title": page.title,
             "slug": page.slug or "/",
+            "is_home_page": bool(page.is_home_page),
+            "html_content": page.html_content,
         }
         for page in site.pages
     ]
