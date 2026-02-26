@@ -65,7 +65,7 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
             # Generate HTML: prefer pre-rendered html_content (imported sites),
             # then Jinja template with blocks, then fallback
             if html_content:
-                html = html_content
+                html = _sanitize_tilda_html(html_content)
             elif template and blocks:
                 html = template.render(
                     title=title,
@@ -94,6 +94,25 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
 
     except Exception as exc:
         logger.error(f"PUBLISH ERROR: site_id={site_id} error={exc}", exc_info=True)
+
+
+def _sanitize_tilda_html(html: str) -> str:
+    """
+    Fix Tilda-specific JS template strings not evaluated in static HTML.
+
+    Tilda uses t_getRootZone() to pick CDN TLD (.com or .info) at runtime.
+    In exported/imported HTML these appear as literal concatenation fragments:
+      src="https://static.tildacdn.'+t_getRootZone()+'/img/..."
+    We replace them with the real '.com' value.
+    """
+    import re
+    # Pattern: '+t_getRootZone()+'  (single-quote JS concatenation)
+    html = re.sub(r"'\s*\+\s*t_getRootZone\(\)\s*\+\s*'", '.com', html)
+    # Pattern: "+t_getRootZone()+"  (double-quote variant)
+    html = re.sub(r'"\s*\+\s*t_getRootZone\(\)\s*\+\s*"', '.com', html)
+    # Fallback: bare t_getRootZone() call
+    html = html.replace('t_getRootZone()', "'com'")
+    return html
 
 
 def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
