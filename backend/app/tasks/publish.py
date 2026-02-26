@@ -1,28 +1,31 @@
 """
 Publish task - generates static HTML of published sites.
+Runs as a FastAPI BackgroundTask (no Celery required).
 """
 
 import os
-import json
+import logging
 from datetime import datetime
 
-from celery import shared_task
 from pymongo import MongoClient
 from jinja2 import Environment, FileSystemLoader
 
 from app.core import settings
 
+logger = logging.getLogger(__name__)
 
-@shared_task(bind=True, max_retries=3)
-def publish_site_task(self, site_id: str, site_name: str, pages_data: list):
+
+def publish_site_task(site_id: str, site_name: str, pages_data: list):
     """
     Generate static HTML for a published site.
+    Called as a FastAPI BackgroundTask.
 
     Args:
         site_id: UUID of the site
-        site_name: Name of the site (used for directory)
+        site_name: Name of the site
         pages_data: List of dicts with page_id, title, slug
     """
+    logger.info(f"Publishing site {site_id} with {len(pages_data)} pages")
     try:
         # Connect to MongoDB to get block content
         mongo_client = MongoClient(settings.mongo_url)
@@ -63,7 +66,6 @@ def publish_site_task(self, site_id: str, site_name: str, pages_data: list):
                     published_at=datetime.utcnow().isoformat(),
                 )
             else:
-                # Fallback: JSON dump for debugging
                 html = _generate_fallback_html(title, site_name, blocks)
 
             # Write file
@@ -77,16 +79,13 @@ def publish_site_task(self, site_id: str, site_name: str, pages_data: list):
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(html)
 
-        mongo_client.close()
+            logger.info(f"Published page '{title}' -> {filepath}")
 
-        return {
-            "site_id": site_id,
-            "pages_published": len(pages_data),
-            "publish_dir": site_dir,
-        }
+        mongo_client.close()
+        logger.info(f"Site {site_id} published successfully ({len(pages_data)} pages)")
 
     except Exception as exc:
-        self.retry(exc=exc, countdown=30)
+        logger.error(f"Failed to publish site {site_id}: {exc}", exc_info=True)
 
 
 def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:

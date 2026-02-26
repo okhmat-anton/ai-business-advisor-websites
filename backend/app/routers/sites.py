@@ -11,7 +11,7 @@ import logging
 from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -227,6 +227,7 @@ async def delete_site(
 @router.post("/{site_id}/publish")
 async def publish_site(
     site_id: str,
+    background_tasks: BackgroundTasks,
     user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -248,7 +249,7 @@ async def publish_site(
     site.updated_at = datetime.utcnow()
     await db.flush()
 
-    # Trigger Celery task to generate static HTML
+    # Enqueue static HTML generation as a background task (no Celery needed)
     pages_data = [
         {
             "page_id": str(page.id),
@@ -258,7 +259,7 @@ async def publish_site(
         for page in site.pages
     ]
     from app.tasks.publish import publish_site_task
-    publish_site_task.delay(str(site.id), site.name, pages_data)
+    background_tasks.add_task(publish_site_task, str(site.id), site.name, pages_data)
 
     return {"status": "published"}
 
