@@ -96,26 +96,6 @@ async def health_check():
 @app.get("/api/v1/server-info")
 async def server_info():
     """Return server IP for DNS configuration instructions."""
-    ip = settings.SERVER_IP
-    if not ip:
-        ip = await _detect_public_ip()
+    from app.core.ip_detect import get_server_ip
+    ip = await get_server_ip()
     return {"serverIp": ip or ""}
-
-
-async def _detect_public_ip() -> str:
-    """Auto-detect public IP via external service."""
-    import httpx
-    services = [
-        "https://api.ipify.org",
-        "https://ifconfig.me/ip",
-        "https://icanhazip.com",
-    ]
-    for url in services:
-        try:
-            async with httpx.AsyncClient(timeout=5) as client:
-                resp = await client.get(url)
-                if resp.status_code == 200:
-                    return resp.text.strip()
-        except Exception:
-            continue
-    return ""

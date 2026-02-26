@@ -356,11 +356,12 @@ async def verify_domain(
     if not domain:
         raise HTTPException(status_code=404, detail="Domain not found")
 
-    expected_ip = settings.SERVER_IP
+    from app.core.ip_detect import get_server_ip
+    expected_ip = await get_server_ip()
     if not expected_ip:
         raise HTTPException(
             status_code=500,
-            detail="SERVER_IP is not configured on the server",
+            detail="Could not determine server IP. Set SERVER_IP in .env.",
         )
 
     # Resolve domain DNS in a thread to avoid blocking
