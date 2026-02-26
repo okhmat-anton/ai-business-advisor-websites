@@ -72,6 +72,30 @@
                 <span class="mx-1">&bull;</span>
                 {{ formatDate(site.updatedAt) }}
               </p>
+              <!-- Domains -->
+              <div v-if="site.domains?.length" class="mt-1">
+                <div
+                  v-for="domain in site.domains.slice(0, 3)"
+                  :key="domain.id"
+                  class="d-flex align-center text-caption"
+                  style="line-height: 1.6"
+                >
+                  <v-icon
+                    size="12"
+                    class="mr-1"
+                    :color="domain.sslStatus === 'active' ? 'success' : domain.isVerified ? 'primary' : 'grey'"
+                  >
+                    {{ domain.sslStatus === 'active' ? 'mdi-lock' : 'mdi-link' }}
+                  </v-icon>
+                  <span
+                    class="text-truncate"
+                    :class="domain.sslStatus === 'active' ? 'text-success' : domain.isVerified ? 'text-primary' : 'text-grey'"
+                  >{{ domain.domainName || domain.domain }}</span>
+                </div>
+                <div v-if="site.domains.length > 3" class="text-caption text-grey">
+                  +{{ site.domains.length - 3 }} more
+                </div>
+              </div>
             </v-card-text>
 
             <v-card-actions class="pt-0">
