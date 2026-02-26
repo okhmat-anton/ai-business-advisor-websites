@@ -28,6 +28,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/html-editor/:siteId/:pageId',
+    name: 'html-editor',
+    component: () => import('@/pages/HtmlEditorPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/preview/:siteId/:pageId',
     name: 'preview',
     component: () => import('@/pages/PreviewPage.vue'),

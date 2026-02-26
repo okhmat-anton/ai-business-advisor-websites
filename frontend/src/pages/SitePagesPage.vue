@@ -96,7 +96,7 @@
             <template v-for="(page, index) in pages" :key="page.id">
               <v-list-item
                 class="page-item"
-                @click="isImported ? openPagePreview(page) : openPageEditor(page)"
+                @click="isImported ? openHtmlEditor(page) : openPageEditor(page)"
               >
                 <template #prepend>
                   <v-avatar color="primary" variant="tonal" size="40" class="mr-3">
@@ -143,12 +143,22 @@
                 </v-list-item-subtitle>
 
                 <template #append>
-                  <!-- Imported sites: preview only -->
+                  <!-- Imported sites: edit HTML -->
                   <template v-if="isImported">
                     <v-btn
                       variant="tonal"
                       size="small"
                       color="primary"
+                      prepend-icon="mdi-code-tags"
+                      class="mr-1"
+                      @click.stop="openHtmlEditor(page)"
+                    >
+                      Edit
+                    </v-btn>
+                    <v-btn
+                      variant="tonal"
+                      size="small"
+                      color="grey"
                       prepend-icon="mdi-eye"
                       @click.stop="openPagePreview(page)"
                     >
@@ -449,6 +459,11 @@ function goBack() {
 function openPageEditor(page: IPage) {
   if (!siteStore.currentSite) return
   router.push(`/editor/${siteStore.currentSite.id}/${page.id}`)
+}
+
+function openHtmlEditor(page: IPage) {
+  if (!siteStore.currentSite) return
+  router.push(`/html-editor/${siteStore.currentSite.id}/${page.id}`)
 }
 
 function openPagePreview(page: IPage) {

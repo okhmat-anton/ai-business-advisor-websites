@@ -79,10 +79,10 @@ onMounted(async () => {
   if (siteId) {
     await siteStore.loadSite(siteId)
 
-    // Imported sites cannot be edited — redirect to preview or site pages
+    // Imported sites cannot be edited with block editor — redirect to HTML editor
     if (siteStore.currentSite?.isImported) {
       if (pageId) {
-        router.replace(`/preview/${siteId}/${pageId}`)
+        router.replace(`/html-editor/${siteId}/${pageId}`)
       } else {
         router.replace(`/sites/${siteId}`)
       }
