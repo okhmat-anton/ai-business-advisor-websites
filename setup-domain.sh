@@ -229,16 +229,17 @@ server {
     }
 
     location / {
-        root /usr/share/nginx/html;
-        index index.html;
-        try_files \$uri \$uri/ /index.html;
+        proxy_pass http://frontend_app;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
     }
 
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)\$ {
-        root /usr/share/nginx/html;
+        proxy_pass http://frontend_app;
         expires 1y;
         add_header Cache-Control "public, immutable";
-        try_files \$uri =404;
     }
 }
 
