@@ -114,22 +114,58 @@ make help               # List all commands
 
 Server logs are available via REST API at `/api/v1/logs`. Supports both JWT auth and Agent API key.
 
+### Quick Reference (copy-paste ready)
+
+Agent key and base URL are in `.env.agent` file. Read the key before making requests:
+
+```bash
+# 1. Read agent key
+AGENT_KEY=$(grep 'AGENT_API_KEY=' .env.agent | cut -d= -f2)
+
+# 2. Application Python logs (certbot, errors, startup) — MOST USEFUL
+curl -s -H "X-Agent-Key: $AGENT_KEY" \
+  'https://builder.akm-advisor.com/api/v1/logs/app?tail=100' | python3 -m json.tool
+
+# 3. App logs filtered by errors only
+curl -s -H "X-Agent-Key: $AGENT_KEY" \
+  'https://builder.akm-advisor.com/api/v1/logs/app?level=ERROR&tail=50' | python3 -m json.tool
+
+# 4. App logs filtered by keyword (e.g. ssl, certbot, domain)
+curl -s -H "X-Agent-Key: $AGENT_KEY" \
+  'https://builder.akm-advisor.com/api/v1/logs/app?search=ssl&tail=100' | python3 -m json.tool
+
+# 5. Docker container logs (api, nginx, postgres, mongodb, redis, worker, frontend)
+curl -s -H "X-Agent-Key: $AGENT_KEY" \
+  'https://builder.akm-advisor.com/api/v1/logs/api?tail=100' | python3 -m json.tool
+
+# 6. Nginx logs with search
+curl -s -H "X-Agent-Key: $AGENT_KEY" \
+  'https://builder.akm-advisor.com/api/v1/logs/nginx?tail=100&search=error' | python3 -m json.tool
+
+# 7. List all available services
+curl -s -H "X-Agent-Key: $AGENT_KEY" \
+  'https://builder.akm-advisor.com/api/v1/logs' | python3 -m json.tool
+```
+
+### How It Works
+
+- **`/api/v1/logs/app`** reads from `/tmp/app.log` (RotatingFileHandler in `main.py`). Contains all Python/uvicorn/certbot logs. Works without docker CLI.
+- **`/api/v1/logs/{service}`** reads Docker container logs via `curl --unix-socket /var/run/docker.sock` (docker CLI not installed in container, uses Docker HTTP API as fallback).
+- Auth: Agent key from `.env.agent` is validated via parent project API `app.akm-advisor.com/api/v1/agent/{project_id}/context`.
+
 ### Authentication
 
 Three methods are supported:
-1. **JWT Bearer token:** `Authorization: Bearer <jwt_token>`
-2. **Local Agent API key:** `X-Agent-Key: <key>` — matches `AGENT_API_KEY` in `.env`
-3. **Parent project agent key:** `X-Agent-Key: agent_...` — validated via `app.akm-advisor.com/api/v1/agent/{project_id}/context` (requires `AGENT_PROJECT_ID` in `.env`)
-
-Set `AGENT_PROJECT_ID` in `.env` on the server to enable agent key validation via parent project.
-The agent key from `.env.agent` (e.g. `agent_iwZAB8UC67EWmVEGZHwhLZsistEiNlCRbzxGMbXIdes`) works automatically.
+1. **Parent project agent key:** `X-Agent-Key: agent_...` — validated via `app.akm-advisor.com` (primary method)
+2. **Local Agent API key:** `X-Agent-Key: <key>` — matches `AGENT_API_KEY` in server `.env`
+3. **JWT Bearer token:** `Authorization: Bearer <jwt_token>`
 
 ### Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/v1/logs` | List available services |
-| GET | `/api/v1/logs/app` | Application-level Python/uvicorn logs |
+| GET | `/api/v1/logs/app` | Application Python/uvicorn logs from file |
 | GET | `/api/v1/logs/{service}` | Docker container logs for a service |
 
 **Available services:** `api`, `worker`, `postgres`, `mongodb`, `redis`, `nginx`, `frontend`
@@ -140,26 +176,8 @@ The agent key from `.env.agent` (e.g. `agent_iwZAB8UC67EWmVEGZHwhLZsistEiNlCRbzx
 |-------|------|---------|-------------|
 | tail | int | 100 | Number of last lines (1–5000) |
 | search | string | — | Filter lines containing text (case-insensitive) |
-| level | string | — | Filter by log level: ERROR, WARNING, INFO, DEBUG (app only) |
-| since | string | — | Docker time filter, e.g. `1h`, `30m` (service only) |
-
-### Examples
-
-```bash
-# View last 50 API container logs (with agent key)
-curl -H "X-Agent-Key: $AGENT_API_KEY" \
-  "https://builder.akm-advisor.com/api/v1/logs/api?tail=50"
-
-# Search for errors in the last hour
-curl -H "X-Agent-Key: $AGENT_API_KEY" \
-  "https://builder.akm-advisor.com/api/v1/logs/api?search=error&since=1h&tail=200"
-
-# Application-level ERROR logs (with JWT)
-curl -H "Authorization: Bearer $TOKEN" \
-  "https://builder.akm-advisor.com/api/v1/logs/app?level=ERROR&tail=100"
-```
-
-**Note:** Docker socket (`/var/run/docker.sock`) is mounted read-only into the API container to enable log access.
+| level | string | — | Filter by log level: ERROR, WARNING, INFO, DEBUG (`/app` only) |
+| since | string | — | Docker time filter, e.g. `1h`, `30m` (`/{service}` only) |
 
 ## Dev Server
 
