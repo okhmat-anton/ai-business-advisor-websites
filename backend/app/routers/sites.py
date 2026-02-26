@@ -567,7 +567,7 @@ server {{
     index index.html;
 
     location / {{
-        try_files $uri $uri/ =404;
+        try_files $uri $uri/ $uri.html $uri/index.html =404;
     }}
 
     # Proxy to API backend (for forms, analytics, etc.)
