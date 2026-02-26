@@ -84,6 +84,9 @@ UPLOAD_DIR=/app/uploads
 # Publish
 PUBLISH_DIR=/app/published
 
+# Agent API key for logs access (optional, set to enable agent log viewing)
+# AGENT_API_KEY=
+
 # Docker ports
 API_PORT=8000
 NGINX_PORT=${DEFAULT_NGINX_PORT}

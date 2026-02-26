@@ -3,10 +3,13 @@ FastAPI application entry point.
 """
 
 import json
+import logging
+import traceback
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.core import settings
@@ -22,10 +25,9 @@ async def lifespan(app: FastAPI):
     # Startup
     MongoDB.connect()
 
-    # Create tables (dev only — use alembic in production)
-    if settings.ENVIRONMENT == "development":
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+    # Ensure tables exist (idempotent — safe for all environments)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
     yield
 
@@ -54,6 +56,24 @@ app.add_middleware(
 
 # Gzip
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+logger = logging.getLogger("uvicorn.error")
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Return detailed JSON error instead of plain 'Internal Server Error'."""
+    tb = traceback.format_exc()
+    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {exc}\n{tb}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": str(exc),
+            "type": type(exc).__name__,
+            "path": str(request.url.path),
+        },
+    )
+
 
 # Routers
 app.include_router(auth.router, prefix="/api/v1")

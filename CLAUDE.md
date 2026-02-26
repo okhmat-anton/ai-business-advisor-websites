@@ -112,7 +112,15 @@ make help               # List all commands
 
 ## Logs API (for Agent / Debugging)
 
-Server logs are available via REST API at `/api/v1/logs`. Requires JWT auth.
+Server logs are available via REST API at `/api/v1/logs`. Supports both JWT auth and Agent API key.
+
+### Authentication
+
+Two methods are supported:
+1. **JWT Bearer token:** `Authorization: Bearer <jwt_token>`
+2. **Agent API key:** `X-Agent-Key: <key>` header (or as Bearer token)
+
+Set `AGENT_API_KEY` in `.env` on the server to enable agent key access.
 
 ### Endpoints
 
@@ -136,15 +144,15 @@ Server logs are available via REST API at `/api/v1/logs`. Requires JWT auth.
 ### Examples
 
 ```bash
-# View last 50 API container logs
-curl -H "Authorization: Bearer $TOKEN" \
+# View last 50 API container logs (with agent key)
+curl -H "X-Agent-Key: $AGENT_API_KEY" \
   "https://builder.akm-advisor.com/api/v1/logs/api?tail=50"
 
 # Search for errors in the last hour
-curl -H "Authorization: Bearer $TOKEN" \
+curl -H "X-Agent-Key: $AGENT_API_KEY" \
   "https://builder.akm-advisor.com/api/v1/logs/api?search=error&since=1h&tail=200"
 
-# Application-level ERROR logs
+# Application-level ERROR logs (with JWT)
 curl -H "Authorization: Bearer $TOKEN" \
   "https://builder.akm-advisor.com/api/v1/logs/app?level=ERROR&tail=100"
 ```

@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = '["http://localhost:10669","http://localhost:3000"]'
 
+    # Agent API key for logs access (optional)
+    AGENT_API_KEY: str = ""
+
     # File upload
     MAX_UPLOAD_SIZE: int = 100 * 1024 * 1024  # 100MB
     UPLOAD_DIR: str = "/app/uploads"

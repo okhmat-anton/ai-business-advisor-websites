@@ -1,6 +1,6 @@
 """
 Logs API router - view server/container logs for debugging.
-Protected by auth. Only accessible to authenticated users.
+Supports both JWT auth and Agent API key auth (X-Agent-Key header).
 """
 
 import asyncio
@@ -9,10 +9,11 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Header
 from pydantic import BaseModel
 
 from app.core.auth import get_current_user, CurrentUser
+from app.core import settings
 
 router = APIRouter(prefix="/logs", tags=["logs"])
 
@@ -20,6 +21,41 @@ logger = logging.getLogger("uvicorn.error")
 
 # Container names used in docker-compose
 ALLOWED_SERVICES = {"api", "worker", "postgres", "mongodb", "redis", "nginx", "frontend"}
+
+# Agent API key from settings (set AGENT_API_KEY in .env)
+AGENT_API_KEY = settings.AGENT_API_KEY
+
+
+async def verify_logs_access(
+    request: Request,
+    x_agent_key: Optional[str] = Header(None),
+):
+    """
+    Allow access via either JWT Bearer token or X-Agent-Key header.
+    Agent key is checked first for convenience (no external auth call needed).
+    """
+    # Check agent key first
+    if x_agent_key and AGENT_API_KEY and x_agent_key == AGENT_API_KEY:
+        return  # Agent key is valid
+
+    # Check Authorization header for Bearer token
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer ") and AGENT_API_KEY and auth_header[7:] == AGENT_API_KEY:
+        return  # Agent key passed as Bearer token
+
+    # Fallback to standard JWT auth
+    try:
+        from fastapi.security import HTTPAuthorizationCredentials
+        token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else ""
+        if not token:
+            raise HTTPException(status_code=401, detail="Missing authentication")
+        creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        await get_current_user(creds)
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authentication. Use JWT Bearer token or X-Agent-Key header.",
+        )
 
 
 class LogEntry(BaseModel):
@@ -39,7 +75,7 @@ class LogsListResponse(BaseModel):
 
 @router.get("", response_model=LogsListResponse)
 async def list_log_services(
-    user: CurrentUser = Depends(get_current_user),
+    _auth=Depends(verify_logs_access),
 ):
     """List available services whose logs can be viewed."""
     return LogsListResponse(
@@ -54,7 +90,7 @@ async def get_app_logs(
     tail: int = Query(100, ge=1, le=5000, description="Number of last lines to return"),
     search: Optional[str] = Query(None, description="Filter lines containing this text (case-insensitive)"),
     level: Optional[str] = Query(None, description="Filter by log level: ERROR, WARNING, INFO, DEBUG"),
-    user: CurrentUser = Depends(get_current_user),
+    _auth=Depends(verify_logs_access),
 ):
     """
     Get application-level Python/uvicorn logs from the API container.
@@ -94,7 +130,7 @@ async def get_service_logs(
     tail: int = Query(100, ge=1, le=5000, description="Number of last lines to return"),
     search: Optional[str] = Query(None, description="Filter lines containing this text (case-insensitive)"),
     since: Optional[str] = Query(None, description="Show logs since (e.g. '1h', '30m', '2h30m')"),
-    user: CurrentUser = Depends(get_current_user),
+    _auth=Depends(verify_logs_access),
 ):
     """
     Get Docker container logs for a specific service.
