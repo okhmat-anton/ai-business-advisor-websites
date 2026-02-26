@@ -186,32 +186,21 @@ fi
 echo "  Certificate ready: $CERT_DIR"
 
 # ==================== Step 5: Nginx SSL config ====================
-echo "[5/7] Configuring Nginx for HTTPS..."
+echo "[5/7] Creating Nginx SSL config for domain..."
 
-CONF_FILE="nginx/conf.d/default.conf"
-cp "$CONF_FILE" "${CONF_FILE}.http-backup" 2>/dev/null || true
+# Domain configs go to ssl-sites/ dir (included by nginx.conf automatically)
+SSL_SITES_DIR="nginx/ssl-sites"
+mkdir -p "$SSL_SITES_DIR"
+CONF_FILE="$SSL_SITES_DIR/${DOMAIN}.conf"
 
-cat > "$CONF_FILE" <<'NGINX_TEMPLATE'
-upstream api_backend {
-    server api:8000;
-}
-
-upstream frontend_app {
-    server frontend:80;
-}
-
-server {
-    listen 80;
-    server_name __DOMAIN__ _;
-    return 301 https://__DOMAIN__$request_uri;
-}
-
+cat > "$CONF_FILE" <<NGINX_TEMPLATE
+# Auto-generated SSL config for ${DOMAIN}
 server {
     listen 443 ssl;
-    server_name __DOMAIN__;
+    server_name ${DOMAIN};
 
-    ssl_certificate     /etc/letsencrypt/live/__DOMAIN__/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/__DOMAIN__/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_ciphers         HIGH:!aNULL:!MD5;
     ssl_session_cache   shared:SSL:10m;
@@ -219,10 +208,10 @@ server {
 
     location /api/ {
         proxy_pass http://api_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
         proxy_read_timeout 120s;
         proxy_connect_timeout 10s;
     }
@@ -240,23 +229,34 @@ server {
     }
 
     location / {
-        proxy_pass http://frontend_app;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files \$uri \$uri/ /index.html;
     }
 
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
-        proxy_pass http://frontend_app;
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)\$ {
+        root /usr/share/nginx/html;
         expires 1y;
         add_header Cache-Control "public, immutable";
+        try_files \$uri =404;
+    }
+}
+
+# HTTP -> HTTPS redirect for ${DOMAIN}
+server {
+    listen 80;
+    server_name ${DOMAIN};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/acme;
+        try_files \$uri =404;
+    }
+
+    location / {
+        return 301 https://\$host\$request_uri;
     }
 }
 NGINX_TEMPLATE
-
-# Replace placeholder with actual domain
-sed -i "s/__DOMAIN__/$DOMAIN/g" "$CONF_FILE"
 
 echo "  Written: $CONF_FILE"
 
@@ -307,7 +307,7 @@ echo "  DONE! Site is live at:"
 echo ""
 echo "  https://$DOMAIN"
 echo ""
-echo "  SSL cert:  $CERT_DIR"
-echo "  Nginx:     $CONF_FILE"
-echo "  Renewal:   automatic (cron)"
+echo "  SSL cert:    $CERT_DIR"
+echo "  Nginx conf:  $CONF_FILE"
+echo "  Renewal:     automatic (cron)"
 echo "================================================"

@@ -21,6 +21,9 @@ venv/
 uploads/
 published/
 
+# Generated nginx SSL configs for custom domains
+nginx/ssl-sites/*.conf
+
 # Node
 node_modules/
 dist/

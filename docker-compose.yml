@@ -78,7 +78,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - custom_ssl_data:/etc/custom-ssl
       - acme_webroot:/var/www/acme
-      - nginx_ssl_confs:/etc/nginx/ssl-sites
+      - ./nginx/ssl-sites:/etc/nginx/ssl-sites
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
@@ -133,7 +133,7 @@ services:
       - letsencrypt_data:/etc/letsencrypt:ro
       - custom_ssl_data:/etc/custom-ssl:ro
       - acme_webroot:/var/www/acme
-      - nginx_ssl_confs:/etc/nginx/ssl-sites:ro
+      - ./nginx/ssl-sites:/etc/nginx/ssl-sites:ro
     ports:
       - "${NGINX_PORT:-10669}:80"
     depends_on:
@@ -148,4 +148,3 @@ volumes:
   letsencrypt_data:
   custom_ssl_data:
   acme_webroot:
-  nginx_ssl_confs:
