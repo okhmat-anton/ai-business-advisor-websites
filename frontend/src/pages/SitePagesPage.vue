@@ -675,7 +675,8 @@ function editSlug(page: IPage) {
   // Strip common folder prefix artifact (e.g. 'folder/contact-us' → 'contact-us')
   const slug = page.slug || ''
   const segments = slug.split('/')
-  editSlugValue.value = segments[segments.length - 1] !== '' ? segments[segments.length - 1] : slug
+  const lastSegment = segments[segments.length - 1]
+  editSlugValue.value = lastSegment !== undefined && lastSegment !== '' ? lastSegment : slug
   showEditSlug.value = true
 }
 
