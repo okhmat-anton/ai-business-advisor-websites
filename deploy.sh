@@ -40,6 +40,9 @@ fi
 
 MODE=${1:-dev}
 
+# Ensure nginx ssl-sites directory exists (bind-mounted into containers)
+mkdir -p nginx/ssl-sites
+
 case $MODE in
     dev)
         echo "Starting in DEVELOPMENT mode..."
