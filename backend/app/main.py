@@ -25,9 +25,12 @@ async def lifespan(app: FastAPI):
     # Startup
     MongoDB.connect()
 
-    # Ensure tables exist (idempotent — safe for all environments)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Ensure tables exist (checkfirst=True skips existing tables)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all, checkfirst=True)
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning(f"Migrations warning - check logs: {e}")
 
     yield
 
