@@ -24,6 +24,10 @@ celery_app.conf.update(
     result_expires=3600,
 )
 
-# Import tasks to register them with the celery app
-# This must happen after celery_app is created to avoid circular imports
-from app.tasks import publish  # noqa: F401, E402
+# Auto-discover tasks in app.tasks package
+celery_app.autodiscover_tasks(["app.tasks"])
+
+# Import tasks to ensure they're registered
+from app.tasks.publish import publish_site_task  # noqa: F401, E402
+
+__all__ = ["celery_app", "publish_site_task"]
