@@ -25,15 +25,17 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
         site_name: Name of the site
         pages_data: List of dicts with page_id, title, slug
     """
-    logger.info(f"Publishing site {site_id} with {len(pages_data)} pages")
+    logger.info(f"PUBLISH START: site_id={site_id} name='{site_name}' pages={len(pages_data)}")
     try:
         # Connect to MongoDB to get block content
         mongo_client = MongoClient(settings.mongo_url)
         mongo_db = mongo_client[settings.MONGO_DB]
+        logger.info(f"PUBLISH: connected to MongoDB")
 
         # Create publish directory
         site_dir = os.path.join(settings.PUBLISH_DIR, site_id)
         os.makedirs(site_dir, exist_ok=True)
+        logger.info(f"PUBLISH: output dir={site_dir}")
 
         # Setup Jinja2 template
         template_dir = os.path.join(os.path.dirname(__file__), "..", "templates")
@@ -56,6 +58,7 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
                     {"_id": 0, "page_id": 0},
                 ).sort("order", 1)
             )
+            logger.info(f"PUBLISH: page '{title}' (id={page_id}) has {len(blocks)} blocks")
 
             # Generate HTML
             if template:
@@ -82,10 +85,10 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
             logger.info(f"Published page '{title}' -> {filepath}")
 
         mongo_client.close()
-        logger.info(f"Site {site_id} published successfully ({len(pages_data)} pages)")
+        logger.info(f"PUBLISH SUCCESS: site_id={site_id} pages={len(pages_data)} dir={site_dir}")
 
     except Exception as exc:
-        logger.error(f"Failed to publish site {site_id}: {exc}", exc_info=True)
+        logger.error(f"PUBLISH ERROR: site_id={site_id} error={exc}", exc_info=True)
 
 
 def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
