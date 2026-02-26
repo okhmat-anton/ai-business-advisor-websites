@@ -466,28 +466,49 @@ async def enable_ssl(
 
 def _run_certbot(domain_name: str) -> dict:
     """Run certbot to obtain an SSL certificate. Runs in a thread."""
+    import shutil
+
+    certbot_path = shutil.which("certbot")
+    logger.info(f"SSL: Starting certbot for {domain_name}, certbot_path={certbot_path}")
+
+    if not certbot_path:
+        logger.error("SSL: certbot binary not found in PATH")
+        return {"success": False, "error": "certbot is not installed on the server"}
+
     try:
+        cmd = [
+            "certbot", "certonly",
+            "--nginx",
+            "-d", domain_name,
+            "--non-interactive",
+            "--agree-tos",
+            "--email", "admin@akm-advisor.com",
+            "--no-eff-email",
+        ]
+        logger.info(f"SSL: Running command: {' '.join(cmd)}")
+
         result = subprocess.run(
-            [
-                "certbot", "certonly",
-                "--nginx",
-                "-d", domain_name,
-                "--non-interactive",
-                "--agree-tos",
-                "--email", "admin@akm-advisor.com",
-                "--no-eff-email",
-            ],
+            cmd,
             capture_output=True,
             text=True,
             timeout=120,
         )
+        logger.info(f"SSL: certbot exit code={result.returncode}")
+        if result.stdout:
+            logger.info(f"SSL: certbot stdout: {result.stdout}")
+        if result.stderr:
+            logger.info(f"SSL: certbot stderr: {result.stderr}")
+
         if result.returncode == 0:
             return {"success": True}
         else:
             return {"success": False, "error": result.stderr or result.stdout}
     except FileNotFoundError:
+        logger.error("SSL: certbot FileNotFoundError")
         return {"success": False, "error": "certbot is not installed on the server"}
     except subprocess.TimeoutExpired:
+        logger.error("SSL: certbot timed out after 120s")
         return {"success": False, "error": "certbot timed out (120s)"}
     except Exception as e:
+        logger.error(f"SSL: certbot unexpected error: {e}")
         return {"success": False, "error": str(e)}

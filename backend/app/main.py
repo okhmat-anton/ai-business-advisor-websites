@@ -4,6 +4,7 @@ FastAPI application entry point.
 
 import json
 import logging
+import logging.handlers
 import traceback
 from contextlib import asynccontextmanager
 
@@ -17,6 +18,35 @@ from app.core.mongodb import MongoDB
 from app.core.redis import close_redis
 from app.core.database import engine, Base
 from app.routers import sites, pages, blocks, uploads, auth, logs
+
+# ============================================
+# File-based logging setup
+# ============================================
+LOG_FILE = "/tmp/app.log"
+
+def setup_file_logging():
+    """Configure rotating file handler so /api/v1/logs/app can read logs."""
+    file_handler = logging.handlers.RotatingFileHandler(
+        LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
+    )
+    file_handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    file_handler.setFormatter(formatter)
+
+    # Attach to root logger so all app logs are captured
+    root = logging.getLogger()
+    root.addHandler(file_handler)
+    root.setLevel(logging.INFO)
+
+    # Also attach to uvicorn loggers
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        uv_logger = logging.getLogger(name)
+        uv_logger.addHandler(file_handler)
+
+setup_file_logging()
 
 
 @asynccontextmanager

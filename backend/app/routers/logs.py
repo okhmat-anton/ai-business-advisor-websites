@@ -187,25 +187,55 @@ async def _docker_logs(
     tail: int = 100,
     since: Optional[str] = None,
 ) -> list[str]:
-    """Execute docker logs command and return lines."""
-    cmd = ["docker", "logs", "--tail", str(tail)]
-
-    if since:
-        cmd.extend(["--since", since])
-
-    cmd.append(container_name)
-
+    """Get container logs. Tries docker CLI first, falls back to curl via unix socket."""
+    # Try docker CLI first
     try:
+        cmd = ["docker", "logs", "--tail", str(tail)]
+        if since:
+            cmd.extend(["--since", since])
+        cmd.append(container_name)
+
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=15)
-
-        # Docker logs outputs to both stdout and stderr
         output = stdout.decode("utf-8", errors="replace") + stderr.decode("utf-8", errors="replace")
-        lines = output.splitlines()
+        return output.splitlines()
+
+    except FileNotFoundError:
+        pass  # docker CLI not installed, try curl fallback
+
+    # Fallback: use curl via docker unix socket API
+    docker_sock = "/var/run/docker.sock"
+    if not os.path.exists(docker_sock):
+        raise HTTPException(
+            status_code=500,
+            detail="Neither Docker CLI nor docker.sock available. "
+                   "Mount /var/run/docker.sock to enable log access.",
+        )
+
+    try:
+        url = f"http://localhost/containers/{container_name}/logs?stdout=true&stderr=true&tail={tail}"
+        if since:
+            url += f"&since={since}"
+
+        cmd = ["curl", "-s", "--unix-socket", docker_sock, url]
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=15)
+        output = stdout.decode("utf-8", errors="replace")
+        # Docker log stream has 8-byte header frames; strip control chars
+        lines = []
+        for line in output.splitlines():
+            # Remove non-printable prefix bytes from docker stream multiplexing
+            cleaned = line.lstrip("\x00\x01\x02\x03\x04\x05\x06\x07\x08")
+            if cleaned:
+                lines.append(cleaned)
         return lines
 
     except asyncio.TimeoutError:
@@ -213,8 +243,7 @@ async def _docker_logs(
     except FileNotFoundError:
         raise HTTPException(
             status_code=500,
-            detail="Docker CLI not available inside container. "
-                   "Mount docker.sock to enable log access.",
+            detail="curl not available in container for docker socket fallback.",
         )
     except Exception as e:
         logger.error(f"Failed to read docker logs for {container_name}: {e}")
