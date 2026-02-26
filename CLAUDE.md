@@ -116,11 +116,15 @@ Server logs are available via REST API at `/api/v1/logs`. Supports both JWT auth
 
 ### Authentication
 
-Two methods are supported:
-1. **JWT Bearer token:** `Authorization: Bearer <jwt_token>`
+Three methods are supported:
+1. **JWT Bearer token:** `Authorization: Bearer <jwt_token>` (from app.akm-advisor.com `/api/v1/auth/login`)
 2. **Agent API key:** `X-Agent-Key: <key>` header (or as Bearer token)
+3. **Agent login flow:** POST to `https://app.akm-advisor.com/api/v1/auth/login` to get JWT, then use on builder
 
-Set `AGENT_API_KEY` in `.env` on the server to enable agent key access.
+The `AGENT_API_KEY` is loaded from **both** `.env` and `.env.agent` files.
+The `.env.agent` file (from AI Agent settings) contains the key automatically.
+
+> **Important:** `.env.agent` is in `.gitignore` — never commit it.
 
 ### Endpoints
 

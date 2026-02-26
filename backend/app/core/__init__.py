@@ -78,7 +78,7 @@ class Settings(BaseSettings):
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
     class Config:
-        env_file = ".env"
+        env_file = (".env", ".env.agent")
 
 
 settings = Settings()
