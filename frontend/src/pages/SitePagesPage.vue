@@ -41,37 +41,34 @@
           </div>
           <v-spacer />
 
-          <!-- Publish button for imported sites -->
           <v-btn
-            v-if="isImported"
+            variant="outlined"
+            prepend-icon="mdi-cog"
+            class="mr-3"
+            @click="showSettings = true"
+          >
+            Site Settings
+          </v-btn>
+
+          <v-btn
             color="success"
             variant="flat"
             prepend-icon="mdi-publish"
+            class="mr-3"
             @click="publishSite"
           >
             Publish
           </v-btn>
 
-          <!-- Normal site actions (hidden for imported) -->
-          <template v-if="!isImported">
-            <v-btn
-              variant="outlined"
-              prepend-icon="mdi-cog"
-              class="mr-3"
-              @click="showSettings = true"
-            >
-              Site Settings
-            </v-btn>
-
-            <v-btn
-              color="primary"
-              variant="flat"
-              prepend-icon="mdi-plus"
-              @click="showAddPage = true"
-            >
-              Add Page
-            </v-btn>
-          </template>
+          <v-btn
+            v-if="!isImported"
+            color="primary"
+            variant="flat"
+            prepend-icon="mdi-plus"
+            @click="showAddPage = true"
+          >
+            Add Page
+          </v-btn>
         </div>
 
         <!-- Empty state -->
@@ -143,7 +140,7 @@
                 </v-list-item-subtitle>
 
                 <template #append>
-                  <!-- Imported sites: edit HTML -->
+                  <!-- Imported sites: edit HTML + menu -->
                   <template v-if="isImported">
                     <v-btn
                       variant="tonal"
@@ -160,10 +157,46 @@
                       size="small"
                       color="grey"
                       prepend-icon="mdi-eye"
+                      class="mr-1"
                       @click.stop="openPagePreview(page)"
                     >
                       Preview
                     </v-btn>
+
+                    <v-menu>
+                      <template #activator="{ props }">
+                        <v-btn icon variant="text" size="small" v-bind="props" @click.stop>
+                          <v-icon>mdi-dots-vertical</v-icon>
+                        </v-btn>
+                      </template>
+                      <v-list density="compact" min-width="160">
+                        <v-list-item @click="editPageMeta(page)">
+                          <template #prepend>
+                            <v-icon size="18">mdi-cog</v-icon>
+                          </template>
+                          <v-list-item-title>SEO / Settings</v-list-item-title>
+                        </v-list-item>
+                        <v-list-item
+                          v-if="!page.isHomePage"
+                          @click="toggleHomePage(page)"
+                        >
+                          <template #prepend>
+                            <v-icon size="18">mdi-home</v-icon>
+                          </template>
+                          <v-list-item-title>Set as Home</v-list-item-title>
+                        </v-list-item>
+                        <v-divider />
+                        <v-list-item
+                          @click="confirmDeletePage(page)"
+                          :disabled="page.isHomePage && pages.length > 1"
+                        >
+                          <template #prepend>
+                            <v-icon size="18" color="error">mdi-delete</v-icon>
+                          </template>
+                          <v-list-item-title class="text-error">Delete</v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </v-menu>
                   </template>
 
                   <!-- Normal sites: edit + menu -->
