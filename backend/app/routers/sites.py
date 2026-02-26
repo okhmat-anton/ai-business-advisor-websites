@@ -440,6 +440,8 @@ async def enable_ssl(
     try:
         result = await loop.run_in_executor(None, _run_certbot, domain.domain_name)
         if result["success"]:
+            # Generate nginx SSL config and reload nginx
+            await _setup_nginx_ssl(domain.domain_name)
             domain.ssl_status = "active"
             await db.flush()
             return {
@@ -478,7 +480,11 @@ def _run_certbot(domain_name: str) -> dict:
     try:
         cmd = [
             "certbot", "certonly",
-            "--nginx",
+            "--webroot",
+            "-w", "/var/www/acme",
+            "--config-dir", "/etc/custom-ssl",
+            "--work-dir", "/tmp/certbot-work",
+            "--logs-dir", "/tmp/certbot-logs",
             "-d", domain_name,
             "--non-interactive",
             "--agree-tos",
@@ -512,3 +518,95 @@ def _run_certbot(domain_name: str) -> dict:
     except Exception as e:
         logger.error(f"SSL: certbot unexpected error: {e}")
         return {"success": False, "error": str(e)}
+
+
+# Directory for generated nginx SSL configs (shared volume with nginx)
+NGINX_SSL_CONF_DIR = "/etc/nginx/ssl-sites"
+
+
+async def _setup_nginx_ssl(domain_name: str):
+    """Generate nginx SSL server block and reload nginx."""
+    import os
+
+    os.makedirs(NGINX_SSL_CONF_DIR, exist_ok=True)
+
+    conf_content = f"""# Auto-generated SSL config for {domain_name}
+server {{
+    listen 443 ssl;
+    server_name {domain_name};
+
+    ssl_certificate /etc/custom-ssl/live/{domain_name}/fullchain.pem;
+    ssl_certificate_key /etc/custom-ssl/live/{domain_name}/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # Proxy to API backend
+    location /api/ {{
+        proxy_pass http://api_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 120s;
+    }}
+
+    # Published site content
+    location /published/ {{
+        alias /app/published/;
+        expires 1h;
+    }}
+
+    # Frontend SPA
+    location / {{
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }}
+}}
+
+# HTTP -> HTTPS redirect for {domain_name}
+server {{
+    listen 80;
+    server_name {domain_name};
+
+    location /.well-known/acme-challenge/ {{
+        root /var/www/acme;
+        try_files $uri =404;
+    }}
+
+    location / {{
+        return 301 https://$host$request_uri;
+    }}
+}}
+"""
+    conf_path = os.path.join(NGINX_SSL_CONF_DIR, f"{domain_name}.conf")
+    with open(conf_path, "w") as f:
+        f.write(conf_content)
+    logger.info(f"SSL: Wrote nginx config to {conf_path}")
+
+    # Reload nginx container via docker socket
+    await _reload_nginx()
+
+
+async def _reload_nginx():
+    """Reload nginx by sending HUP signal via docker socket API."""
+    docker_sock = "/var/run/docker.sock"
+    if not os.path.exists(docker_sock):
+        logger.warning("SSL: docker.sock not available, cannot reload nginx")
+        return
+
+    try:
+        # Send SIGHUP to nginx container to reload config
+        proc = await asyncio.create_subprocess_exec(
+            "curl", "-s", "-X", "POST",
+            "--unix-socket", docker_sock,
+            "http://localhost/containers/sb-nginx/kill?signal=HUP",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
+        logger.info(f"SSL: Nginx reload signal sent (exit={proc.returncode})")
+    except Exception as e:
+        logger.error(f"SSL: Failed to reload nginx: {e}")

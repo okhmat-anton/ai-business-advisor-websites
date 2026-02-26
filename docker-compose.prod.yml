@@ -11,6 +11,9 @@ services:
       - uploads_data:/app/uploads
       - published_data:/app/published
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - custom_ssl_data:/etc/custom-ssl
+      - acme_webroot:/var/www/acme
+      - nginx_ssl_confs:/etc/nginx/ssl-sites
 
   worker:
     build:
@@ -27,6 +30,9 @@ services:
       - "443:443"
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - custom_ssl_data:/etc/custom-ssl:ro
+      - acme_webroot:/var/www/acme
+      - nginx_ssl_confs:/etc/nginx/ssl-sites:ro
 
   frontend:
     build:

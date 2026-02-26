@@ -11,6 +11,7 @@ ENV PYTHONUNBUFFERED=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libmagic1 \
+    certbot \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

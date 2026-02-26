@@ -76,6 +76,9 @@ services:
       - uploads_data:/app/uploads
       - published_data:/app/published
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - custom_ssl_data:/etc/custom-ssl
+      - acme_webroot:/var/www/acme
+      - nginx_ssl_confs:/etc/nginx/ssl-sites
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
@@ -127,6 +130,10 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - uploads_data:/app/uploads:ro
       - published_data:/app/published:ro
+      - letsencrypt_data:/etc/letsencrypt:ro
+      - custom_ssl_data:/etc/custom-ssl:ro
+      - acme_webroot:/var/www/acme
+      - nginx_ssl_confs:/etc/nginx/ssl-sites:ro
     ports:
       - "${NGINX_PORT:-10669}:80"
     depends_on:
@@ -138,3 +145,7 @@ volumes:
   redis_data:
   uploads_data:
   published_data:
+  letsencrypt_data:
+  custom_ssl_data:
+  acme_webroot:
+  nginx_ssl_confs:
