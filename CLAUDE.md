@@ -182,3 +182,23 @@ Three methods are supported:
 ## Dev Server
 
 Port: **10669** (configured in `vite.config.ts`)
+
+## Agent Rules
+
+⚠️ **IMPORTANT: Git Commit Policy**
+
+**NEVER commit or push changes directly to the repository.**
+
+When code changes are needed:
+1. Make the changes locally
+2. Show the diff or explain what was changed
+3. Wait for user confirmation
+4. **User will commit and push manually**
+
+The only exception: emergency hotfixes explicitly requested by the user with "commit this now" or similar urgent language.
+
+This rule exists because:
+- User needs to review changes before they go to production
+- Commits should have meaningful messages crafted by the user
+- Agent may bundle unrelated changes together
+- Production deployment requires manual approval
