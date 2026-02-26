@@ -63,6 +63,7 @@
       variant="flat"
       size="small"
       class="ml-2"
+      :loading="isPublishing"
       @click="handlePublish"
     >
       <v-icon left size="18">mdi-rocket-launch</v-icon>
@@ -72,12 +73,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useEditorStore } from '@/stores/editorStore'
 import { useSiteStore } from '@/stores/siteStore'
 import { useUiStore } from '@/stores/uiStore'
 import DevicePreview from './DevicePreview.vue'
+
+const showNotification = inject<(text: string, color?: string) => void>('showNotification', () => {})
 
 const router = useRouter()
 const editorStore = useEditorStore()
@@ -102,8 +105,22 @@ async function handleSave() {
   await editorStore.save()
 }
 
+const isPublishing = ref(false)
+
 async function handlePublish() {
-  await siteStore.publish()
+  isPublishing.value = true
+  try {
+    const success = await siteStore.publish()
+    if (success) {
+      showNotification('Site published successfully!', 'success')
+    } else {
+      showNotification('Failed to publish site', 'error')
+    }
+  } catch {
+    showNotification('Failed to publish site', 'error')
+  } finally {
+    isPublishing.value = false
+  }
 }
 </script>
 

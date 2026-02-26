@@ -55,6 +55,7 @@
             variant="flat"
             prepend-icon="mdi-publish"
             class="mr-3"
+            :loading="isPublishing"
             @click="publishSite"
           >
             Publish
@@ -587,6 +588,11 @@
           </v-tabs-window>
         </v-card>
       </v-dialog>
+    <!-- Snackbar for notifications -->
+    <v-snackbar v-model="showSnackbar" :color="snackbarColor" timeout="3000" location="bottom right">
+      {{ snackbarText }}
+    </v-snackbar>
+
     </v-container>
   </PublicLayout>
 </template>
@@ -687,9 +693,32 @@ function openPagePreview(page: IPage) {
   router.push(`/preview/${siteStore.currentSite.id}/${page.id}`)
 }
 
+const isPublishing = ref(false)
+const showSnackbar = ref(false)
+const snackbarText = ref('')
+const snackbarColor = ref('success')
+
+function notify(text: string, color = 'success') {
+  snackbarText.value = text
+  snackbarColor.value = color
+  showSnackbar.value = true
+}
+
 async function publishSite() {
   if (!siteStore.currentSite) return
-  await siteStore.publish()
+  isPublishing.value = true
+  try {
+    const success = await siteStore.publish()
+    if (success) {
+      notify('Site published successfully!', 'success')
+    } else {
+      notify('Failed to publish site', 'error')
+    }
+  } catch {
+    notify('Failed to publish site', 'error')
+  } finally {
+    isPublishing.value = false
+  }
 }
 
 // ===== Add Page =====
