@@ -1,4 +1,4 @@
-// ZIP import utility — extracts HTML pages and inlines assets (CSS, images) into them
+// ZIP import utility — extracts HTML pages and inlines assets (CSS, images, JS) into them
 import JSZip from 'jszip'
 
 export interface ZipImportResult {
@@ -15,7 +15,11 @@ export interface ImportedPage {
 }
 
 /**
- * Parse a ZIP file and extract site pages with inlined assets
+ * Parse a ZIP file and extract site pages with inlined assets.
+ *
+ * CSS is inlined as <style> tags, JS as <script> tags (not data URLs),
+ * images/fonts as base64 data URLs. URL-encoded paths are decoded
+ * before matching against ZIP entries.
  */
 export async function parseZipFile(file: File): Promise<ZipImportResult> {
   const arrayBuffer = await file.arrayBuffer()
@@ -25,7 +29,7 @@ export async function parseZipFile(file: File): Promise<ZipImportResult> {
   // Detect root directory (some ZIPs have a wrapper folder)
   const rootPrefix = detectRootPrefix(zip)
 
-  // Collect HTML files
+  // Collect HTML files and asset entries
   const htmlFiles: string[] = []
   const assetEntries: Array<{ path: string; relativePath: string }> = []
 
@@ -47,16 +51,27 @@ export async function parseZipFile(file: File): Promise<ZipImportResult> {
     }
   })
 
-  // Build asset map — read all non-HTML files as base64 data URLs for inlining
-  const assetMap = new Map<string, string>()
+  // Build two asset maps:
+  // 1) textAssetMap — raw text content for CSS & JS (to inline as <style>/<script>)
+  // 2) dataUrlAssetMap — base64 data URLs for images (to inline in src/href/url())
+  const textAssetMap = new Map<string, string>()
+  const dataUrlAssetMap = new Map<string, string>()
 
   await Promise.all(
     assetEntries.map(async ({ path, relativePath }) => {
       const entry = zip.file(relativePath)
       if (!entry) return
+      const ext = path.split('.').pop()?.toLowerCase() || ''
+
+      if (ext === 'css' || ext === 'js' || ext === 'mjs') {
+        // Read as text for inline embedding
+        const text = await entry.async('string')
+        textAssetMap.set(path, text)
+      }
+      // Always build a data URL for all files (images, fonts, and also CSS/JS as fallback)
       const blob = await entry.async('blob')
       const dataUrl = await blobToDataUrl(blob, getMimeType(path))
-      assetMap.set(path, dataUrl)
+      dataUrlAssetMap.set(path, dataUrl)
     })
   )
 
@@ -77,8 +92,8 @@ export async function parseZipFile(file: File): Promise<ZipImportResult> {
 
     const isMain = cleanPath.match(/^index\.html?$/i) !== null
 
-    // Inline all referenced assets (CSS, JS, images) into HTML
-    htmlContent = inlineAssets(htmlContent, cleanPath, assetMap)
+    // Inline all referenced assets into HTML
+    htmlContent = inlineAssets(htmlContent, cleanPath, textAssetMap, dataUrlAssetMap)
 
     pages.push({
       fileName: cleanPath,
@@ -96,24 +111,75 @@ export async function parseZipFile(file: File): Promise<ZipImportResult> {
 }
 
 /**
- * Inline CSS, JS, and image assets into HTML by replacing relative paths with data URLs
+ * Inline CSS, JS, and image assets into HTML.
+ * - <link rel="stylesheet" href="..."> → <style>...contents...</style>
+ * - <script src="..."></script> → <script>...contents...</script>
+ * - <img src="..."> and other src/href → data URLs
+ * - url() in CSS → data URLs
  */
 function inlineAssets(
   html: string,
   htmlPath: string,
-  assetMap: Map<string, string>
+  textAssetMap: Map<string, string>,
+  dataUrlAssetMap: Map<string, string>
 ): string {
-  const htmlDir = htmlPath.includes('/')
-    ? htmlPath.substring(0, htmlPath.lastIndexOf('/') + 1).replace(/^[^/]*\//, '')
-    : ''
+  const htmlDir = getHtmlDir(htmlPath)
 
-  // Replace src="" and href="" attributes with data URLs
+  // 1. Inline CSS: replace <link rel="stylesheet" href="..."> with <style> tags
+  html = html.replace(
+    /<link\b[^>]*\bhref=["']([^"']+)["'][^>]*>/gi,
+    (match, href) => {
+      // Only process stylesheet links
+      if (!/rel=["']stylesheet["']/i.test(match) && !/\.css(\?[^"']*)?$/i.test(href)) {
+        return match
+      }
+      if (isExternalUrl(href)) return match
+
+      const resolvedPath = resolveAssetPath(htmlDir, href)
+      const cssText = textAssetMap.get(resolvedPath)
+      if (cssText) {
+        // Resolve url() references inside the CSS before inlining
+        const cssDir = resolvedPath.includes('/')
+          ? resolvedPath.substring(0, resolvedPath.lastIndexOf('/') + 1)
+          : ''
+        const processedCss = resolveCssUrls(cssText, cssDir, dataUrlAssetMap)
+        return `<style>/* ${resolvedPath} */\n${processedCss}\n</style>`
+      }
+      return match
+    }
+  )
+
+  // 2. Inline JS: replace <script src="...">...</script> with inline <script> tags
+  html = html.replace(
+    /<script\b([^>]*)\bsrc=["']([^"']+)["']([^>]*)>[\s\S]*?<\/script>/gi,
+    (match, before, src, after) => {
+      if (isExternalUrl(src)) return match
+
+      const resolvedPath = resolveAssetPath(htmlDir, src)
+      const jsText = textAssetMap.get(resolvedPath)
+      if (jsText) {
+        // Clone the <script> tag attributes but remove src, keep type etc.
+        const attrs = (before + after)
+          .replace(/\bsrc=["'][^"']*["']/gi, '')
+          .replace(/\bonerror=["'][^"']*["']/gi, '') // remove onerror since we're inlining
+          .trim()
+        const attrsStr = attrs ? ` ${attrs}` : ''
+        return `<script${attrsStr}>/* ${resolvedPath} */\n${jsText}\n</script>`
+      }
+      return match
+    }
+  )
+
+  // 3. Replace remaining src="" and href="" with data URLs (images, favicons, etc.)
   html = html.replace(
     /(src|href)=["']([^"']+)["']/gi,
     (match, attr, path) => {
       if (isExternalUrl(path)) return match
-      const resolvedPath = resolvePath(htmlDir, path)
-      const dataUrl = assetMap.get(resolvedPath)
+      // Skip already-processed inline content (data URLs were already inserted)
+      if (path.startsWith('data:')) return match
+
+      const resolvedPath = resolveAssetPath(htmlDir, path)
+      const dataUrl = dataUrlAssetMap.get(resolvedPath)
       if (dataUrl) {
         return `${attr}="${dataUrl}"`
       }
@@ -121,13 +187,14 @@ function inlineAssets(
     }
   )
 
-  // Replace url() in inline styles and <style> tags
+  // 4. Replace url() in inline styles and remaining <style> tags
   html = html.replace(
     /url\(["']?([^"')]+)["']?\)/gi,
     (match, path) => {
       if (isExternalUrl(path)) return match
-      const resolvedPath = resolvePath(htmlDir, path)
-      const dataUrl = assetMap.get(resolvedPath)
+      if (path.startsWith('data:')) return match
+      const resolvedPath = resolveAssetPath(htmlDir, path)
+      const dataUrl = dataUrlAssetMap.get(resolvedPath)
       if (dataUrl) {
         return `url("${dataUrl}")`
       }
@@ -138,6 +205,38 @@ function inlineAssets(
   return html
 }
 
+/**
+ * Resolve url() references inside CSS content, replacing them with data URLs
+ */
+function resolveCssUrls(
+  cssText: string,
+  cssDir: string,
+  dataUrlAssetMap: Map<string, string>
+): string {
+  return cssText.replace(
+    /url\(["']?([^"')]+)["']?\)/gi,
+    (match, path) => {
+      if (isExternalUrl(path)) return match
+      if (path.startsWith('data:')) return match
+      const resolvedPath = resolveAssetPath(cssDir, path)
+      const dataUrl = dataUrlAssetMap.get(resolvedPath)
+      if (dataUrl) {
+        return `url("${dataUrl}")`
+      }
+      return match
+    }
+  )
+}
+
+/**
+ * Get the directory portion of the HTML path (relative to root, without root prefix)
+ */
+function getHtmlDir(htmlPath: string): string {
+  const lastSlash = htmlPath.lastIndexOf('/')
+  if (lastSlash === -1) return ''
+  return htmlPath.substring(0, lastSlash + 1)
+}
+
 function isExternalUrl(path: string): boolean {
   return (
     path.startsWith('http://') ||
@@ -146,15 +245,25 @@ function isExternalUrl(path: string): boolean {
     path.startsWith('data:') ||
     path.startsWith('#') ||
     path.startsWith('mailto:') ||
-    path.startsWith('tel:')
+    path.startsWith('tel:') ||
+    path.startsWith('javascript:')
   )
 }
 
 /**
- * Resolve a relative path against a directory
+ * Resolve a relative asset path against a directory.
+ * Decodes URL-encoded characters (e.g. %20 → space) so paths match ZIP entries.
  */
-function resolvePath(dir: string, relativePath: string): string {
-  const cleanPath = relativePath.split('?')[0]!.split('#')[0]!
+function resolveAssetPath(dir: string, relativePath: string): string {
+  // Strip query string and fragment
+  let cleanPath = relativePath.split('?')[0]!.split('#')[0]!
+
+  // Decode URL-encoded characters (%20 → space, etc.)
+  try {
+    cleanPath = decodeURIComponent(cleanPath)
+  } catch {
+    // If decoding fails, use the original path
+  }
 
   if (cleanPath.startsWith('/')) {
     return cleanPath.substring(1)
