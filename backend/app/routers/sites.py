@@ -3,6 +3,7 @@ Sites API router - CRUD operations for websites.
 """
 
 import uuid
+import os
 import socket
 import asyncio
 import subprocess
@@ -526,8 +527,6 @@ NGINX_SSL_CONF_DIR = "/etc/nginx/ssl-sites"
 
 async def _setup_nginx_ssl(domain_name: str):
     """Generate nginx SSL server block and reload nginx."""
-    import os
-
     os.makedirs(NGINX_SSL_CONF_DIR, exist_ok=True)
 
     conf_content = f"""# Auto-generated SSL config for {domain_name}
