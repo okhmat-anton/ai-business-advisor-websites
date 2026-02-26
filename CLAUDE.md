@@ -116,11 +116,13 @@ Server logs are available via REST API at `/api/v1/logs`. Supports both JWT auth
 
 ### Authentication
 
-Two methods are supported:
+Three methods are supported:
 1. **JWT Bearer token:** `Authorization: Bearer <jwt_token>`
-2. **Agent API key:** `X-Agent-Key: <key>` header (or as Bearer token)
+2. **Local Agent API key:** `X-Agent-Key: <key>` — matches `AGENT_API_KEY` in `.env`
+3. **Parent project agent key:** `X-Agent-Key: agent_...` — validated via `app.akm-advisor.com/api/v1/agent/{project_id}/context` (requires `AGENT_PROJECT_ID` in `.env`)
 
-Set `AGENT_API_KEY` in `.env` on the server to enable agent key access.
+Set `AGENT_PROJECT_ID` in `.env` on the server to enable agent key validation via parent project.
+The agent key from `.env.agent` (e.g. `agent_iwZAB8UC67EWmVEGZHwhLZsistEiNlCRbzxGMbXIdes`) works automatically.
 
 ### Endpoints
 

@@ -1,6 +1,6 @@
 """
 Logs API router - view server/container logs for debugging.
-Supports both JWT auth and Agent API key auth (X-Agent-Key header).
+Supports JWT auth, local Agent API key, and parent project agent key validation.
 """
 
 import asyncio
@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Header
 from pydantic import BaseModel
 
@@ -26,22 +27,43 @@ ALLOWED_SERVICES = {"api", "worker", "postgres", "mongodb", "redis", "nginx", "f
 AGENT_API_KEY = settings.AGENT_API_KEY
 
 
+async def _validate_agent_key_via_parent(agent_key: str) -> bool:
+    """Validate agent key by calling parent project context endpoint."""
+    project_id = settings.AGENT_PROJECT_ID
+    if not project_id:
+        return False
+    url = f"{settings.EXTERNAL_AUTH_URL}/api/v1/agent/{project_id}/context"
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(url, headers={"X-Agent-Key": agent_key})
+            return resp.status_code == 200
+    except Exception:
+        return False
+
+
 async def verify_logs_access(
     request: Request,
     x_agent_key: Optional[str] = Header(None),
 ):
     """
-    Allow access via either JWT Bearer token or X-Agent-Key header.
-    Agent key is checked first for convenience (no external auth call needed).
+    Allow access via:
+    1. Local AGENT_API_KEY match (X-Agent-Key header or Bearer)
+    2. Parent project agent key validation via app.akm-advisor.com
+    3. JWT Bearer token
     """
-    # Check agent key first
+    # Check local agent key first
     if x_agent_key and AGENT_API_KEY and x_agent_key == AGENT_API_KEY:
-        return  # Agent key is valid
+        return
 
-    # Check Authorization header for Bearer token
     auth_header = request.headers.get("authorization", "")
     if auth_header.startswith("Bearer ") and AGENT_API_KEY and auth_header[7:] == AGENT_API_KEY:
-        return  # Agent key passed as Bearer token
+        return
+
+    # Validate agent key via parent project API
+    key_to_check = x_agent_key or (auth_header[7:] if auth_header.startswith("Bearer ") else None)
+    if key_to_check and key_to_check.startswith("agent_"):
+        if await _validate_agent_key_via_parent(key_to_check):
+            return
 
     # Fallback to standard JWT auth
     try:

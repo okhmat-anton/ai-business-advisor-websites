@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     # Agent API key for logs access (optional)
     AGENT_API_KEY: str = ""
 
+    # Agent project ID for validating agent keys via parent API (from AGENTS.md)
+    AGENT_PROJECT_ID: str = "698427043be84d505d347aad"
+
     # Server IP for DNS verification (A record check)
     SERVER_IP: str = ""
 
