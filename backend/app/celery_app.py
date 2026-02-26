@@ -26,8 +26,3 @@ celery_app.conf.update(
 
 # Auto-discover tasks in app.tasks package
 celery_app.autodiscover_tasks(["app.tasks"])
-
-# Import tasks to ensure they're registered
-from app.tasks.publish import publish_site_task  # noqa: F401, E402
-
-__all__ = ["celery_app", "publish_site_task"]
