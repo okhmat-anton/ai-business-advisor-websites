@@ -248,7 +248,18 @@ async def publish_site(
     site.updated_at = datetime.utcnow()
     await db.flush()
 
-    # TODO: trigger Celery task to generate static HTML
+    # Trigger Celery task to generate static HTML
+    pages_data = [
+        {
+            "page_id": str(page.id),
+            "title": page.title,
+            "slug": page.slug or "/",
+        }
+        for page in site.pages
+    ]
+    from app.tasks.publish import publish_site_task
+    publish_site_task.delay(str(site.id), site.name, pages_data)
+
     return {"status": "published"}
 
 
