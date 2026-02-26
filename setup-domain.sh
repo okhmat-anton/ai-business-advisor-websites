@@ -195,6 +195,9 @@ CONF_FILE="$SSL_SITES_DIR/${DOMAIN}.conf"
 
 cat > "$CONF_FILE" <<NGINX_TEMPLATE
 # Auto-generated SSL config for ${DOMAIN}
+# NOTE: This template is for the BUILDER domain (proxies to frontend SPA).
+# Custom user domains are configured via the API (enable_ssl endpoint)
+# and serve published site content, not the builder.
 server {
     listen 443 ssl;
     server_name ${DOMAIN};

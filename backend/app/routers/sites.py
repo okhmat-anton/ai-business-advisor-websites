@@ -430,7 +430,9 @@ async def enable_ssl(
         )
 
     if domain.ssl_status == "active":
-        return {"status": "active", "message": "SSL is already active for this domain"}
+        # Regenerate nginx config (in case template changed) and reload
+        await _setup_nginx_ssl(domain.domain_name, str(site.id))
+        return {"status": "active", "message": "SSL is already active for this domain. Nginx config regenerated."}
 
     # Mark as pending
     domain.ssl_status = "pending"
@@ -441,8 +443,8 @@ async def enable_ssl(
     try:
         result = await loop.run_in_executor(None, _run_certbot, domain.domain_name)
         if result["success"]:
-            # Generate nginx SSL config and reload nginx
-            await _setup_nginx_ssl(domain.domain_name)
+            # Generate nginx SSL config for published site and reload nginx
+            await _setup_nginx_ssl(domain.domain_name, str(site.id))
             domain.ssl_status = "active"
             await db.flush()
             return {
@@ -525,11 +527,12 @@ def _run_certbot(domain_name: str) -> dict:
 NGINX_SSL_CONF_DIR = "/etc/nginx/ssl-sites"
 
 
-async def _setup_nginx_ssl(domain_name: str):
-    """Generate nginx SSL server block and reload nginx."""
+async def _setup_nginx_ssl(domain_name: str, site_id: str):
+    """Generate nginx SSL server block for a custom domain serving published site content."""
     os.makedirs(NGINX_SSL_CONF_DIR, exist_ok=True)
 
     conf_content = f"""# Auto-generated SSL config for {domain_name}
+# Serves published site content for site_id: {site_id}
 server {{
     listen 443 ssl;
     server_name {domain_name};
@@ -541,7 +544,15 @@ server {{
     ssl_ciphers HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers on;
 
-    # Proxy to API backend
+    # Published site content (root of the custom domain)
+    root /app/published/{site_id};
+    index index.html;
+
+    location / {{
+        try_files $uri $uri/ /index.html;
+    }}
+
+    # Proxy to API backend (for forms, analytics, etc.)
     location /api/ {{
         proxy_pass http://api_backend;
         proxy_set_header Host $host;
@@ -551,23 +562,15 @@ server {{
         proxy_read_timeout 120s;
     }}
 
-    # Published site content
-    location /published/ {{
-        alias /app/published/;
-        expires 1h;
+    # Uploaded files (images, media used by the published site)
+    location /uploads/ {{
+        alias /app/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
     }}
 
-    # Frontend SPA (proxy to frontend container)
-    location / {{
-        proxy_pass http://frontend_app;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-    }}
-
-    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {{
-        proxy_pass http://frontend_app;
+    # Static assets caching
+    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|webp)$ {{
         expires 1y;
         add_header Cache-Control "public, immutable";
     }}
