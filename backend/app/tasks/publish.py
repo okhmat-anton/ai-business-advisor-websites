@@ -107,9 +107,9 @@ def _sanitize_tilda_html(html: str) -> str:
     """
     import re
     # Pattern: '+t_getRootZone()+'  (single-quote JS concatenation)
-    html = re.sub(r"'\s*\+\s*t_getRootZone\(\)\s*\+\s*'", '.com', html)
+    html = re.sub(r"'\s*\+\s*t_getRootZone\(\)\s*\+\s*'", 'com', html)
     # Pattern: "+t_getRootZone()+"  (double-quote variant)
-    html = re.sub(r'"\s*\+\s*t_getRootZone\(\)\s*\+\s*"', '.com', html)
+    html = re.sub(r'"\s*\+\s*t_getRootZone\(\)\s*\+\s*"', 'com', html)
     # Fallback: bare t_getRootZone() call
     html = html.replace('t_getRootZone()', "'com'")
     return html
