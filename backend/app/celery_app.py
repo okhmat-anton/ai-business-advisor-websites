@@ -10,7 +10,6 @@ celery_app = Celery(
     "sitebuilder",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=["app.tasks.publish"],
 )
 
 celery_app.conf.update(
@@ -24,3 +23,7 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     result_expires=3600,
 )
+
+# Import tasks to register them with the celery app
+# This must happen after celery_app is created to avoid circular imports
+from app.tasks import publish  # noqa: F401, E402
