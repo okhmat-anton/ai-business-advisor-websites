@@ -27,6 +27,7 @@ class Site(Base):
     favicon = Column(String(1000), nullable=True)
     status = Column(String(20), default="draft", nullable=False)  # draft | published
     is_published = Column(Boolean, default=False)
+    is_imported = Column(Boolean, default=False, nullable=False)
     global_settings = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -53,6 +54,7 @@ class Page(Base):
     status = Column(String(20), default="draft", nullable=False)
     is_main = Column(Boolean, default=False)
     is_home_page = Column(Boolean, default=False)
+    html_content = Column(Text, nullable=True)  # Raw HTML for imported pages
     sort_order = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

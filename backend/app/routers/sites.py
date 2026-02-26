@@ -30,6 +30,7 @@ def _page_to_response(page: Page) -> PageResponse:
         title=page.title,
         slug=page.slug,
         blocks=[],
+        htmlContent=page.html_content,
         seo=SeoSchema(
             title=page.seo_title or "",
             description=page.seo_description or "",
@@ -70,6 +71,7 @@ def _site_to_response(site: Site) -> SiteResponse:
         subdomain=site.subdomain,
         favicon=site.favicon,
         isPublished=site.is_published,
+        isImported=site.is_imported,
         globalSettings=GlobalSettingsSchema(**gs) if gs else GlobalSettingsSchema(),
         domains=[_domain_to_response(d) for d in (site.domains or [])],
         pages=[_page_to_response(p) for p in (site.pages or [])],
@@ -124,6 +126,7 @@ async def create_site(
         user_id=user.user_id,
         name=data.name,
         description=data.description,
+        is_imported=data.is_imported or False,
         global_settings={
             "fonts": {"heading": "Inter", "body": "Inter"},
             "colors": {

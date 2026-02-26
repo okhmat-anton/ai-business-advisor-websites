@@ -63,6 +63,7 @@ class PageResponse(BaseModel):
     title: str
     slug: str
     blocks: List[str] = []
+    htmlContent: Optional[str] = None
     seo: SeoSchema = SeoSchema()
     status: str = "draft"
     isMain: bool = False
@@ -83,6 +84,7 @@ class PageUpdateRequest(BaseModel):
     status: Optional[str] = None
     isMain: Optional[bool] = None
     isHomePage: Optional[bool] = None
+    htmlContent: Optional[str] = None
 
 
 # ========== Domains ==========
@@ -122,6 +124,7 @@ class SiteResponse(BaseModel):
     subdomain: Optional[str] = None
     favicon: Optional[str] = None
     isPublished: Optional[bool] = False
+    isImported: Optional[bool] = False
     globalSettings: GlobalSettingsSchema = GlobalSettingsSchema()
     domains: List[DomainResponse] = []
     pages: List[PageResponse] = []
@@ -133,6 +136,7 @@ class SiteResponse(BaseModel):
 class SiteCreateRequest(BaseModel):
     name: str
     description: Optional[str] = None
+    is_imported: Optional[bool] = False
 
 
 class SiteUpdateRequest(BaseModel):

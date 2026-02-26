@@ -34,6 +34,7 @@ def _page_to_response(page: Page) -> PageResponse:
         title=page.title,
         slug=page.slug,
         blocks=[],
+        htmlContent=page.html_content,
         seo=SeoSchema(
             title=page.seo_title or "",
             description=page.seo_description or "",
@@ -116,6 +117,8 @@ async def update_page(
         page.is_main = update_data["isMain"]
     if "isHomePage" in update_data:
         page.is_home_page = update_data["isHomePage"]
+    if "htmlContent" in update_data:
+        page.html_content = update_data["htmlContent"]
     if "seo" in update_data and update_data["seo"]:
         seo = update_data["seo"]
         page.seo_title = seo.get("title", page.seo_title)
