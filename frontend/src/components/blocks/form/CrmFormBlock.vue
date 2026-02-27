@@ -11,8 +11,8 @@
       <h2 v-if="content.title" class="crm-form-title">{{ content.title }}</h2>
       <p v-if="content.subtitle" class="crm-form-subtitle">{{ content.subtitle }}</p>
 
-      <!-- Embedded form HTML from CRM -->
-      <div v-if="content.embedCode" class="crm-form-embed" v-html="content.embedCode" />
+      <!-- Embed container: scripts are executed via DOM injection on mount -->
+      <div v-if="content.embedCode" ref="embedContainer" class="crm-form-embed" />
 
       <!-- Placeholder when no form selected -->
       <div v-else class="crm-form-placeholder">
@@ -27,7 +27,46 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+import { ref, watch, onMounted, nextTick } from 'vue'
+
+const props = defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+
+const embedContainer = ref<HTMLElement | null>(null)
+
+/**
+ * Inject embed HTML into the container and re-execute any <script> tags.
+ * Vue's v-html silently drops scripts – this workaround creates real DOM nodes
+ * so that third-party form scripts actually run.
+ */
+function injectEmbed(html: string) {
+  const el = embedContainer.value
+  if (!el) return
+
+  // Clear previous content
+  el.innerHTML = ''
+
+  // Create a document fragment from the HTML string
+  const fragment = document.createRange().createContextualFragment(html)
+  el.appendChild(fragment)
+}
+
+onMounted(() => {
+  if (props.content.embedCode) {
+    nextTick(() => injectEmbed(props.content.embedCode))
+  }
+})
+
+// Re-inject when embedCode changes (user selects different form)
+watch(
+  () => props.content.embedCode,
+  (code) => {
+    if (code) {
+      nextTick(() => injectEmbed(code))
+    } else if (embedContainer.value) {
+      embedContainer.value.innerHTML = ''
+    }
+  }
+)
 </script>
 
 <style scoped>

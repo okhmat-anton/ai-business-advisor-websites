@@ -12,100 +12,140 @@
 
       <v-divider />
 
-      <v-card-text class="pa-0">
-        <!-- Search + refresh -->
-        <div class="pa-3 d-flex align-center gap-2">
-          <v-text-field
-            v-model="search"
-            placeholder="Search forms..."
-            density="compact"
-            variant="outlined"
-            hide-details
-            prepend-inner-icon="mdi-magnify"
-            clearable
-            style="flex: 1"
-          />
-          <v-btn icon variant="tonal" size="small" @click="loadForms" :loading="loading">
-            <v-icon size="18">mdi-refresh</v-icon>
-          </v-btn>
-        </div>
-
-        <v-divider />
-
-        <!-- Loading -->
-        <div v-if="loading" class="d-flex justify-center align-center pa-8">
-          <v-progress-circular indeterminate color="primary" />
-        </div>
-
-        <!-- Error -->
-        <v-alert
-          v-else-if="error"
-          type="error"
-          variant="tonal"
-          density="compact"
-          class="ma-3"
-        >
-          {{ error }}
-        </v-alert>
-
-        <!-- Empty -->
-        <div v-else-if="filteredForms.length === 0" class="pa-8 text-center text-grey">
-          <v-icon size="48" class="mb-2">mdi-form-textbox</v-icon>
-          <p>{{ search ? 'No forms match your search' : 'No forms found in CRM' }}</p>
-        </div>
-
-        <!-- Forms list -->
-        <v-list v-else class="py-0" style="max-height: 360px; overflow-y: auto">
-          <v-list-item
-            v-for="form in filteredForms"
-            :key="form.id"
-            :active="selectedFormId === form.id"
-            active-color="primary"
-            class="cursor-pointer"
-            @click="selectForm(form)"
-          >
-            <template #prepend>
-              <v-avatar size="36" color="primary" variant="tonal">
-                <v-icon size="18">mdi-form-textbox</v-icon>
-              </v-avatar>
-            </template>
-
-            <v-list-item-title class="font-weight-medium">{{ form.name }}</v-list-item-title>
-            <v-list-item-subtitle>
-              <span class="text-caption">/{{ form.slug }}</span>
-              <span v-if="form.fields?.length" class="mx-1 text-caption text-grey">&bull;</span>
-              <span v-if="form.fields?.length" class="text-caption text-grey">
-                {{ form.fields.length }} fields
-              </span>
-            </v-list-item-subtitle>
-
-            <template #append>
-              <v-icon v-if="selectedFormId === form.id" color="primary" size="20">
-                mdi-check-circle
-              </v-icon>
-              <v-chip
-                v-if="form.is_active === false"
-                size="x-small"
-                color="warning"
-                variant="tonal"
-              >
-                Inactive
-              </v-chip>
-            </template>
-          </v-list-item>
-        </v-list>
-      </v-card-text>
+      <!-- Mode tabs -->
+      <v-tabs v-model="mode" density="compact" class="px-2">
+        <v-tab value="list" prepend-icon="mdi-format-list-bulleted">CRM Forms</v-tab>
+        <v-tab value="manual" prepend-icon="mdi-code-tags">Paste Code</v-tab>
+      </v-tabs>
 
       <v-divider />
 
-      <!-- Embed code preview -->
-      <div v-if="selectedForm && embedCode" class="pa-3 bg-grey-lighten-5">
-        <div class="text-caption text-grey mb-1 d-flex align-center">
-          <v-icon size="14" class="mr-1">mdi-code-tags</v-icon>
-          Embed code preview
-        </div>
-        <pre class="embed-preview text-caption">{{ embedCode }}</pre>
-      </div>
+      <v-card-text class="pa-0" style="min-height: 260px">
+        <!-- ─── CRM Forms list mode ─── -->
+        <template v-if="mode === 'list'">
+          <!-- Search + refresh -->
+          <div class="pa-3 d-flex align-center gap-2">
+            <v-text-field
+              v-model="search"
+              placeholder="Search forms..."
+              density="compact"
+              variant="outlined"
+              hide-details
+              prepend-inner-icon="mdi-magnify"
+              clearable
+              style="flex: 1"
+            />
+            <v-btn icon variant="tonal" size="small" @click="loadForms" :loading="loading">
+              <v-icon size="18">mdi-refresh</v-icon>
+            </v-btn>
+          </div>
+
+          <v-divider />
+
+          <!-- Loading -->
+          <div v-if="loading" class="d-flex justify-center align-center pa-8">
+            <v-progress-circular indeterminate color="primary" />
+          </div>
+
+          <!-- Error with hint to use manual mode -->
+          <div v-else-if="error" class="pa-3">
+            <v-alert type="warning" variant="tonal" density="compact" class="mb-2">
+              {{ error }}
+            </v-alert>
+            <p class="text-caption text-grey text-center">
+              Try the <strong>"Paste Code"</strong> tab to insert embed code manually.
+            </p>
+          </div>
+
+          <!-- Empty -->
+          <div v-else-if="filteredForms.length === 0" class="pa-8 text-center text-grey">
+            <v-icon size="48" class="mb-2">mdi-form-textbox</v-icon>
+            <p>{{ search ? 'No forms match your search' : 'No forms found in CRM' }}</p>
+          </div>
+
+          <!-- Forms list -->
+          <v-list v-else class="py-0" style="max-height: 320px; overflow-y: auto">
+            <v-list-item
+              v-for="form in filteredForms"
+              :key="form.id"
+              :active="selectedFormId === form.id"
+              active-color="primary"
+              class="cursor-pointer"
+              @click="selectForm(form)"
+            >
+              <template #prepend>
+                <v-avatar size="36" color="primary" variant="tonal">
+                  <v-icon size="18">mdi-form-textbox</v-icon>
+                </v-avatar>
+              </template>
+
+              <v-list-item-title class="font-weight-medium">{{ form.name }}</v-list-item-title>
+              <v-list-item-subtitle>
+                <span class="text-caption">/{{ form.slug }}</span>
+                <span v-if="form.fields?.length" class="mx-1 text-caption text-grey">&bull;</span>
+                <span v-if="form.fields?.length" class="text-caption text-grey">
+                  {{ form.fields.length }} fields
+                </span>
+              </v-list-item-subtitle>
+
+              <template #append>
+                <v-icon v-if="selectedFormId === form.id" color="primary" size="20">
+                  mdi-check-circle
+                </v-icon>
+                <v-chip
+                  v-if="form.is_active === false"
+                  size="x-small"
+                  color="warning"
+                  variant="tonal"
+                >
+                  Inactive
+                </v-chip>
+              </template>
+            </v-list-item>
+          </v-list>
+
+          <!-- Embed code preview for selected form -->
+          <template v-if="selectedForm && embedCode">
+            <v-divider />
+            <div class="pa-3 bg-grey-lighten-5">
+              <div class="text-caption text-grey mb-1 d-flex align-center">
+                <v-icon size="14" class="mr-1">mdi-code-tags</v-icon>
+                Embed code preview
+              </div>
+              <pre class="embed-preview text-caption">{{ embedCode }}</pre>
+            </div>
+          </template>
+        </template>
+
+        <!-- ─── Manual paste mode ─── -->
+        <template v-else>
+          <div class="pa-4">
+            <p class="text-body-2 text-grey mb-3">
+              Paste the embed code from your form builder or CRM:
+            </p>
+            <v-textarea
+              v-model="manualEmbedCode"
+              label="Embed code"
+              placeholder="<div data-form-id=...></div>&#10;<script src=...></script>"
+              variant="outlined"
+              rows="6"
+              hide-details
+              class="mb-3"
+              style="font-family: 'Consolas', 'Monaco', monospace; font-size: 13px"
+            />
+            <v-text-field
+              v-model="manualFormName"
+              label="Form name (optional)"
+              density="compact"
+              variant="outlined"
+              hide-details
+              placeholder="e.g. Contact Us"
+            />
+          </div>
+        </template>
+      </v-card-text>
+
+      <v-divider />
 
       <v-card-actions class="pa-4">
         <v-spacer />
@@ -113,7 +153,7 @@
         <v-btn
           color="primary"
           variant="flat"
-          :disabled="!embedCode"
+          :disabled="mode === 'list' ? (!embedCode || loadingEmbed) : !manualEmbedCode.trim()"
           :loading="loadingEmbed"
           prepend-icon="mdi-plus"
           @click="insert"
@@ -141,6 +181,9 @@ const show = computed({
   set: (val) => emit('update:modelValue', val),
 })
 
+// Mode: 'list' = CRM API forms, 'manual' = paste embed code
+const mode = ref<'list' | 'manual'>('list')
+
 const forms = ref<CrmForm[]>([])
 const search = ref('')
 const loading = ref(false)
@@ -149,6 +192,10 @@ const selectedFormId = ref<string | null>(null)
 const selectedForm = ref<CrmForm | null>(null)
 const embedCode = ref('')
 const loadingEmbed = ref(false)
+
+// Manual mode
+const manualEmbedCode = ref('')
+const manualFormName = ref('')
 
 const filteredForms = computed(() => {
   if (!search.value.trim()) return forms.value
@@ -166,6 +213,9 @@ watch(show, (val) => {
     selectedForm.value = null
     embedCode.value = ''
     search.value = ''
+    manualEmbedCode.value = ''
+    manualFormName.value = ''
+    mode.value = 'list'
   }
 })
 
@@ -203,6 +253,20 @@ async function selectForm(form: CrmForm) {
 }
 
 function insert() {
+  if (mode.value === 'manual') {
+    const code = manualEmbedCode.value.trim()
+    if (!code) return
+    emit('insert', code)
+    emit('select', {
+      formId: '',
+      formName: manualFormName.value.trim() || 'Custom form',
+      formSlug: '',
+      embedCode: code,
+    })
+    close()
+    return
+  }
+
   if (!embedCode.value || !selectedForm.value) return
   emit('insert', embedCode.value)
   emit('select', {
