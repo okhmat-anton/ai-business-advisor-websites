@@ -1,0 +1,74 @@
+<template>
+  <section
+    class="crm-form-block"
+    :style="{
+      backgroundColor: settings.backgroundColor,
+      paddingTop: settings.paddingTop,
+      paddingBottom: settings.paddingBottom,
+    }"
+  >
+    <div class="crm-form-inner">
+      <h2 v-if="content.title" class="crm-form-title">{{ content.title }}</h2>
+      <p v-if="content.subtitle" class="crm-form-subtitle">{{ content.subtitle }}</p>
+
+      <!-- Embedded form HTML from CRM -->
+      <div v-if="content.embedCode" class="crm-form-embed" v-html="content.embedCode" />
+
+      <!-- Placeholder when no form selected -->
+      <div v-else class="crm-form-placeholder">
+        <div class="crm-form-placeholder-inner">
+          <v-icon size="40" color="grey-lighten-1">mdi-form-select</v-icon>
+          <p class="text-body-2 text-grey mt-2">No CRM form selected</p>
+          <p class="text-caption text-grey">Click "Edit Content" and choose a form</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
+defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+</script>
+
+<style scoped>
+.crm-form-block {
+  width: 100%;
+}
+
+.crm-form-inner {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 40px;
+  text-align: center;
+}
+
+.crm-form-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #212121;
+  margin-bottom: 8px;
+}
+
+.crm-form-subtitle {
+  color: #666;
+  margin-bottom: 24px;
+  font-size: 16px;
+}
+
+.crm-form-embed {
+  text-align: left;
+}
+
+.crm-form-placeholder {
+  border: 2px dashed #e0e0e0;
+  border-radius: 8px;
+  padding: 40px 20px;
+}
+
+.crm-form-placeholder-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+</style>

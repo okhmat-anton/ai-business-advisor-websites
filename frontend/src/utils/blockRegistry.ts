@@ -24,6 +24,7 @@ const blockComponents: Record<string, Component> = {
   // Form
   FormBlock01: defineAsyncComponent(() => import('@/components/blocks/form/FormBlock01.vue')),
   FormBlock02: defineAsyncComponent(() => import('@/components/blocks/form/FormBlock02.vue')),
+  CrmFormBlock: defineAsyncComponent(() => import('@/components/blocks/form/CrmFormBlock.vue')),
   // Menu
   MenuBlock01: defineAsyncComponent(() => import('@/components/blocks/menu/MenuBlock01.vue')),
   MenuBlock02: defineAsyncComponent(() => import('@/components/blocks/menu/MenuBlock02.vue')),

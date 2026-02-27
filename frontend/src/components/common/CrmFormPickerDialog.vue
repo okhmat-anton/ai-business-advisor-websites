@@ -133,6 +133,7 @@ const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{
   'update:modelValue': [val: boolean]
   insert: [code: string]
+  select: [data: { formId: string; formName: string; formSlug: string; embedCode: string }]
 }>()
 
 const show = computed({
@@ -202,8 +203,14 @@ async function selectForm(form: CrmForm) {
 }
 
 function insert() {
-  if (!embedCode.value) return
+  if (!embedCode.value || !selectedForm.value) return
   emit('insert', embedCode.value)
+  emit('select', {
+    formId: selectedForm.value.id,
+    formName: selectedForm.value.name,
+    formSlug: selectedForm.value.slug,
+    embedCode: embedCode.value,
+  })
   close()
 }
 

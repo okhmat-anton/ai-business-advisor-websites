@@ -252,6 +252,28 @@ export const BLOCK_TEMPLATES: IBlockTemplate[] = [
 
   // Form blocks
   {
+    type: 'CrmFormBlock',
+    category: 'form' as BlockCategory,
+    name: 'CRM Form',
+    description: 'Embed a form from AKM Advisor CRM directly on your page',
+    thumbnail: '',
+    defaultContent: {
+      title: '',
+      subtitle: '',
+      formId: '',
+      formName: '',
+      formSlug: '',
+      embedCode: '',
+    },
+    defaultSettings: {
+      paddingTop: '60px',
+      paddingBottom: '60px',
+      backgroundColor: '#ffffff',
+      align: 'center',
+    },
+    htmlTemplate: '',
+  },
+  {
     type: 'FormBlock01',
     category: 'form' as BlockCategory,
     name: 'Contact form',

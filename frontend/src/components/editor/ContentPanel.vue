@@ -27,9 +27,64 @@
         Editing: {{ activeBlock.type }} block
       </div>
 
-      <!-- Generic content fields: iterate over content keys -->
-      <template v-for="(value, key) in activeBlock.content" :key="key">
-        <!-- Skip complex objects for now, show simple fields -->
+      <!-- CRM Form block: special picker UI -->
+      <template v-if="activeBlock.type === 'CrmFormBlock'">
+        <v-card variant="outlined" class="mb-4 pa-3">
+          <div class="text-subtitle-2 mb-3 d-flex align-center">
+            <v-icon size="18" class="mr-2" color="primary">mdi-form-select</v-icon>
+            CRM Form
+          </div>
+          <div v-if="activeBlock.content.formName" class="d-flex align-center mb-3">
+            <v-chip color="primary" variant="tonal" size="small" prepend-icon="mdi-check-circle">
+              {{ activeBlock.content.formName }}
+            </v-chip>
+            <v-btn icon variant="text" size="x-small" class="ml-1" @click="clearCrmForm">
+              <v-icon size="14">mdi-close</v-icon>
+            </v-btn>
+          </div>
+          <div v-else class="text-caption text-grey mb-3">No form selected</div>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            size="small"
+            block
+            prepend-icon="mdi-plus"
+            @click="showCrmFormPicker = true"
+          >
+            {{ activeBlock.content.formName ? 'Change Form' : 'Select CRM Form' }}
+          </v-btn>
+        </v-card>
+
+        <!-- title / subtitle for CRM block -->
+        <v-text-field
+          :model-value="activeBlock.content.title"
+          @update:model-value="updateContent('title', $event)"
+          label="Title (optional)"
+          density="compact"
+          variant="outlined"
+          hide-details
+          class="mb-3"
+        />
+        <v-text-field
+          :model-value="activeBlock.content.subtitle"
+          @update:model-value="updateContent('subtitle', $event)"
+          label="Subtitle (optional)"
+          density="compact"
+          variant="outlined"
+          hide-details
+          class="mb-3"
+        />
+
+        <CrmFormPickerDialog
+          v-model="showCrmFormPicker"
+          @select="onCrmFormSelected"
+        />
+      </template>
+
+      <!-- Generic content fields: iterate over content keys (skip CrmFormBlock special fields) -->
+      <template v-if="activeBlock.type !== 'CrmFormBlock'">
+        <template v-for="(value, key) in activeBlock.content" :key="key">
+          <!-- Skip complex objects for now, show simple fields -->
         <template v-if="isSimpleField(key, value)">
           <!-- URL fields -->
           <v-text-field
@@ -168,16 +223,40 @@
             Add Item
           </v-btn>
         </template>
+        </template>
       </template>
     </div>
   </v-navigation-drawer>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useEditorStore } from '@/stores/editorStore'
 import { useUiStore } from '@/stores/uiStore'
 import { deepClone } from '@/utils/helpers'
+import CrmFormPickerDialog from '@/components/common/CrmFormPickerDialog.vue'
+
+const showCrmFormPicker = ref(false)
+
+function onCrmFormSelected(data: { formId: string; formName: string; formSlug: string; embedCode: string }) {
+  if (!activeBlock.value) return
+  editorStore.updateBlockContent(activeBlock.value.id, {
+    formId: data.formId,
+    formName: data.formName,
+    formSlug: data.formSlug,
+    embedCode: data.embedCode,
+  })
+}
+
+function clearCrmForm() {
+  if (!activeBlock.value) return
+  editorStore.updateBlockContent(activeBlock.value.id, {
+    formId: '',
+    formName: '',
+    formSlug: '',
+    embedCode: '',
+  })
+}
 
 const editorStore = useEditorStore()
 const uiStore = useUiStore()
