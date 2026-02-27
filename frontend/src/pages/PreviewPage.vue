@@ -59,7 +59,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useEditorStore } from '@/stores/editorStore'
 import { useSiteStore } from '@/stores/siteStore'
-import { DEVICE_SIZES } from '@/types/editor'
 import BlockRenderer from '@/components/editor/BlockRenderer.vue'
 
 const route = useRoute()
@@ -79,9 +78,15 @@ const sortedBlocks = computed(() =>
 )
 
 const frameStyle = computed(() => {
-  const sizes = DEVICE_SIZES[deviceMode.value as keyof typeof DEVICE_SIZES]
+  const widths: Record<string, string> = {
+    desktop: '100%',
+    tablet: '768px',
+    mobile: '375px',
+  }
+  const w = widths[deviceMode.value] ?? '100%'
   return {
-    maxWidth: sizes ? `${sizes.width}px` : '100%',
+    maxWidth: w,
+    width: w,
     margin: '0 auto',
   }
 })
