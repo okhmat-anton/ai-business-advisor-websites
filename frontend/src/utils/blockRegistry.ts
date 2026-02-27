@@ -1,44 +1,55 @@
 // Block registry: maps block type string to Vue component
 // Used by BlockRenderer to dynamically render blocks
+// Uses static imports (not async) so blocks render immediately when added
 
-import { defineAsyncComponent, type Component } from 'vue'
+import { type Component } from 'vue'
+
+import CoverBlock01 from '@/components/blocks/cover/CoverBlock01.vue'
+import CoverBlock02 from '@/components/blocks/cover/CoverBlock02.vue'
+import CoverBlock03 from '@/components/blocks/cover/CoverBlock03.vue'
+import AboutBlock01 from '@/components/blocks/about/AboutBlock01.vue'
+import AboutBlock02 from '@/components/blocks/about/AboutBlock02.vue'
+import TextBlock01 from '@/components/blocks/text/TextBlock01.vue'
+import TextBlock02 from '@/components/blocks/text/TextBlock02.vue'
+import HeadingBlock01 from '@/components/blocks/heading/HeadingBlock01.vue'
+import ImageBlock01 from '@/components/blocks/image/ImageBlock01.vue'
+import GalleryBlock01 from '@/components/blocks/image/GalleryBlock01.vue'
+import ButtonBlock01 from '@/components/blocks/button/ButtonBlock01.vue'
+import FormBlock01 from '@/components/blocks/form/FormBlock01.vue'
+import FormBlock02 from '@/components/blocks/form/FormBlock02.vue'
+import CrmFormBlock from '@/components/blocks/form/CrmFormBlock.vue'
+import MenuBlock01 from '@/components/blocks/menu/MenuBlock01.vue'
+import MenuBlock02 from '@/components/blocks/menu/MenuBlock02.vue'
+import FooterBlock01 from '@/components/blocks/footer/FooterBlock01.vue'
+import FooterBlock02 from '@/components/blocks/footer/FooterBlock02.vue'
+import VideoBlock01 from '@/components/blocks/video/VideoBlock01.vue'
+import DividerBlock01 from '@/components/blocks/divider/DividerBlock01.vue'
+import ColumnsBlock01 from '@/components/blocks/columns/ColumnsBlock01.vue'
+import ZeroBlock from '@/components/blocks/zeroblock/ZeroBlock.vue'
 
 const blockComponents: Record<string, Component> = {
-  // Covers
-  CoverBlock01: defineAsyncComponent(() => import('@/components/blocks/cover/CoverBlock01.vue')),
-  CoverBlock02: defineAsyncComponent(() => import('@/components/blocks/cover/CoverBlock02.vue')),
-  CoverBlock03: defineAsyncComponent(() => import('@/components/blocks/cover/CoverBlock03.vue')),
-  // About
-  AboutBlock01: defineAsyncComponent(() => import('@/components/blocks/about/AboutBlock01.vue')),
-  AboutBlock02: defineAsyncComponent(() => import('@/components/blocks/about/AboutBlock02.vue')),
-  // Text
-  TextBlock01: defineAsyncComponent(() => import('@/components/blocks/text/TextBlock01.vue')),
-  TextBlock02: defineAsyncComponent(() => import('@/components/blocks/text/TextBlock02.vue')),
-  // Heading
-  HeadingBlock01: defineAsyncComponent(() => import('@/components/blocks/heading/HeadingBlock01.vue')),
-  // Image
-  ImageBlock01: defineAsyncComponent(() => import('@/components/blocks/image/ImageBlock01.vue')),
-  GalleryBlock01: defineAsyncComponent(() => import('@/components/blocks/image/GalleryBlock01.vue')),
-  // Button
-  ButtonBlock01: defineAsyncComponent(() => import('@/components/blocks/button/ButtonBlock01.vue')),
-  // Form
-  FormBlock01: defineAsyncComponent(() => import('@/components/blocks/form/FormBlock01.vue')),
-  FormBlock02: defineAsyncComponent(() => import('@/components/blocks/form/FormBlock02.vue')),
-  CrmFormBlock: defineAsyncComponent(() => import('@/components/blocks/form/CrmFormBlock.vue')),
-  // Menu
-  MenuBlock01: defineAsyncComponent(() => import('@/components/blocks/menu/MenuBlock01.vue')),
-  MenuBlock02: defineAsyncComponent(() => import('@/components/blocks/menu/MenuBlock02.vue')),
-  // Footer
-  FooterBlock01: defineAsyncComponent(() => import('@/components/blocks/footer/FooterBlock01.vue')),
-  FooterBlock02: defineAsyncComponent(() => import('@/components/blocks/footer/FooterBlock02.vue')),
-  // Video
-  VideoBlock01: defineAsyncComponent(() => import('@/components/blocks/video/VideoBlock01.vue')),
-  // Divider
-  DividerBlock01: defineAsyncComponent(() => import('@/components/blocks/divider/DividerBlock01.vue')),
-  // Columns
-  ColumnsBlock01: defineAsyncComponent(() => import('@/components/blocks/columns/ColumnsBlock01.vue')),
-  // Zero Block
-  ZeroBlock: defineAsyncComponent(() => import('@/components/blocks/zeroblock/ZeroBlock.vue')),
+  CoverBlock01,
+  CoverBlock02,
+  CoverBlock03,
+  AboutBlock01,
+  AboutBlock02,
+  TextBlock01,
+  TextBlock02,
+  HeadingBlock01,
+  ImageBlock01,
+  GalleryBlock01,
+  ButtonBlock01,
+  FormBlock01,
+  FormBlock02,
+  CrmFormBlock,
+  MenuBlock01,
+  MenuBlock02,
+  FooterBlock01,
+  FooterBlock02,
+  VideoBlock01,
+  DividerBlock01,
+  ColumnsBlock01,
+  ZeroBlock,
 }
 
 export function getBlockComponent(type: string): Component | null {
@@ -46,3 +57,4 @@ export function getBlockComponent(type: string): Component | null {
 }
 
 export default blockComponents
+
