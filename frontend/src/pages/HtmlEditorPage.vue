@@ -56,6 +56,10 @@
           <v-icon size="16" class="mr-1">mdi-code-tags</v-icon>
           <span class="text-caption font-weight-medium">HTML Source</span>
           <v-spacer />
+          <v-btn variant="text" size="x-small" @click="showFormPicker = true" title="Insert CRM form">
+            <v-icon size="16">mdi-form-select</v-icon>
+            <v-tooltip activator="parent" location="bottom">Insert CRM form</v-tooltip>
+          </v-btn>
           <v-btn variant="text" size="x-small" @click="formatHtml" title="Format HTML">
             <v-icon size="16">mdi-auto-fix</v-icon>
           </v-btn>
@@ -87,7 +91,11 @@
         </div>
       </div>
     </div>
-
+    <!-- CRM Form Picker -->
+    <CrmFormPickerDialog
+      v-model="showFormPicker"
+      @insert="insertFormCode"
+    />
     <!-- Snackbar -->
     <v-snackbar v-model="showSnackbar" :color="snackbarColor" timeout="2000" location="bottom right">
       {{ snackbarText }}
@@ -100,6 +108,7 @@ import { ref, computed, onMounted, onUnmounted, watch, shallowRef, nextTick } fr
 import { useRoute, useRouter } from 'vue-router'
 import { useSiteStore } from '@/stores/siteStore'
 import { DEVICE_SIZES } from '@/types/editor'
+import CrmFormPickerDialog from '@/components/common/CrmFormPickerDialog.vue'
 
 // CodeMirror imports
 import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection, rectangularSelection, crosshairCursor, dropCursor } from '@codemirror/view'
@@ -132,6 +141,9 @@ const editorView = shallowRef<EditorView | null>(null)
 const showSnackbar = ref(false)
 const snackbarText = ref('')
 const snackbarColor = ref('success')
+
+// CRM Form picker
+const showFormPicker = ref(false)
 
 // Computed
 const pageTitle = computed(() => siteStore.currentPage?.title || 'HTML Page')
@@ -285,6 +297,25 @@ async function copyHtml() {
   } catch {
     notify('Copy failed', 'error')
   }
+}
+
+/** Insert embed code at current cursor position in CodeMirror editor */
+function insertFormCode(code: string) {
+  const view = editorView.value
+  if (!view) {
+    // Fallback: append to end of htmlCode
+    const newCode = htmlCode.value + '\n' + code
+    setEditorContent(newCode)
+    return
+  }
+  const pos = view.state.selection.main.head
+  const insert = '\n' + code + '\n'
+  view.dispatch({
+    changes: { from: pos, insert },
+    selection: { anchor: pos + insert.length },
+  })
+  view.focus()
+  notify('Form inserted', 'success')
 }
 
 async function save() {
