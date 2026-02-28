@@ -204,19 +204,15 @@
             </template>
           </v-text-field>
 
-          <!-- Textarea for long text -->
-          <v-textarea
-            v-else-if="isLongText(key as string, value as string)"
-            :model-value="value as string"
-            @update:model-value="updateContent(key as string, $event)"
-            :label="formatLabel(key as string)"
-            density="compact"
-            variant="outlined"
-            hide-details
-            class="mb-3"
-            rows="3"
-            auto-grow
-          />
+          <!-- Rich text editor for long text fields -->
+          <div v-else-if="isLongText(key as string, value as string)" class="mb-3">
+            <div class="text-caption text-grey-darken-1 mb-1">{{ formatLabel(key as string) }}</div>
+            <RichTextEditor
+              :model-value="(value as string) || ''"
+              @update:model-value="updateContent(key as string, $event)"
+              :placeholder="formatLabel(key as string)"
+            />
+          </div>
 
           <!-- Number fields -->
           <v-text-field
@@ -321,6 +317,7 @@ import { useUiStore } from '@/stores/uiStore'
 import { deepClone } from '@/utils/helpers'
 import CrmFormPickerDialog from '@/components/common/CrmFormPickerDialog.vue'
 import ImageUploader from '@/components/common/ImageUploader.vue'
+import RichTextEditor from '@/components/common/RichTextEditor.vue'
 
 const showCrmFormPicker = ref(false)
 

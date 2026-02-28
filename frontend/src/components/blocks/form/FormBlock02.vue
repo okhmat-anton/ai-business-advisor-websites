@@ -2,7 +2,7 @@
   <section class="form-block-02" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
     <div class="subscribe-container">
       <h2 :style="textStyle(content, 'title')">{{ content.title }}</h2>
-      <p :style="textStyle(content, 'subtitle', false)">{{ content.subtitle }}</p>
+      <p :style="textStyle(content, 'subtitle', false)" v-html="content.subtitle" />
       <form class="subscribe-form" @submit.prevent="onSubmit">
         <input type="email" :placeholder="content.placeholder || 'Enter your email'" />
         <button type="submit">{{ content.submitText || 'Subscribe' }}</button>

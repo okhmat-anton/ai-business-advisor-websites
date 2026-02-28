@@ -3,7 +3,7 @@
   <section class="about-block-02" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
     <div class="about-container">
       <h2 :style="textStyle(content, 'title')">{{ content.title }}</h2>
-      <p class="about-desc" :style="textStyle(content, 'text', false)">{{ content.text }}</p>
+      <p class="about-desc" :style="textStyle(content, 'text', false)" v-html="content.text" />
       <div class="counters">
         <div v-for="(counter, i) in content.counters" :key="i" class="counter-item">
           <span class="counter-value">{{ counter.value }}</span>

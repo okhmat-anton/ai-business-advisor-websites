@@ -4,7 +4,7 @@
     <div class="about-container">
       <div class="about-text">
         <h2 :style="textStyle(content, 'title')">{{ content.title }}</h2>
-        <p :style="textStyle(content, 'text', false)">{{ content.text }}</p>
+        <p :style="textStyle(content, 'text', false)" v-html="content.text" />
       </div>
       <div class="about-image">
         <img :src="content.image" alt="About" />

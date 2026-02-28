@@ -4,7 +4,7 @@
       <div class="footer-top">
         <div class="footer-brand">
           <h3 :style="textStyle(content, 'logo')">{{ content.logo }}</h3>
-          <p :style="textStyle(content, 'description', false)">{{ content.description }}</p>
+          <p :style="textStyle(content, 'description', false)" v-html="content.description" />
         </div>
         <div v-for="(col, i) in content.columns" :key="i" class="footer-column">
           <h4>{{ col.title }}</h4>

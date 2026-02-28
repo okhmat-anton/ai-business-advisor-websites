@@ -2,7 +2,7 @@
   <section class="text-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}`, textAlign: settings.align }">
     <div class="text-container">
       <h2 v-if="content.title" :style="textStyle(content, 'title')">{{ content.title }}</h2>
-      <p :style="textStyle(content, 'text', false)">{{ content.text }}</p>
+      <p :style="textStyle(content, 'text', false)" v-html="content.text" />
     </div>
   </section>
 </template>

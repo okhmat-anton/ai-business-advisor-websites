@@ -2,7 +2,7 @@
   <section class="heading-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}`, textAlign: settings.align }">
     <div class="heading-container">
       <component :is="content.level || 'h2'" class="heading-title" :style="textStyle(content, 'title')">{{ content.title }}</component>
-      <p v-if="content.subtitle" class="heading-subtitle" :style="textStyle(content, 'subtitle')">{{ content.subtitle }}</p>
+      <p v-if="content.subtitle" class="heading-subtitle" :style="textStyle(content, 'subtitle')" v-html="content.subtitle" />
     </div>
   </section>
 </template>
