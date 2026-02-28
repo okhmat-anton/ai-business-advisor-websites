@@ -8,6 +8,8 @@ import socket
 import asyncio
 import subprocess
 import logging
+import secrets
+import string
 from datetime import datetime
 from typing import List
 
@@ -192,9 +194,17 @@ async def update_site(
         current_gs.update(gs)
         site.global_settings = current_gs
 
-    # Check subdomain uniqueness BEFORE modifying site object to avoid autoflush issues
+    # Check subdomain uniqueness BEFORE modifying site object to avoid autoflush issues.
+    # Empty string → generate random 8-char subdomain.
     new_subdomain = update_data.get("subdomain")
     if new_subdomain is not None:
+        new_subdomain = new_subdomain.strip() or None  # '' → None
+        if new_subdomain is None:
+            alphabet = string.ascii_lowercase + string.digits
+            new_subdomain = "".join(secrets.choice(alphabet) for _ in range(8))
+        update_data["subdomain"] = new_subdomain
+
+    if new_subdomain:
         existing = await db.execute(
             select(Site.id).where(
                 Site.subdomain == new_subdomain,
