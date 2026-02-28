@@ -201,6 +201,14 @@ export const useEditorStore = defineStore('editor', () => {
     pushHistory('Updated block settings')
   }
 
+  /** Update block settings without adding a history entry (used for live drag updates) */
+  function updateBlockSettingsSilent(blockId: string, settings: Record<string, any>) {
+    const block = blocks.value.find((b: IBlock) => b.id === blockId)
+    if (!block) return
+    block.settings = { ...block.settings, ...settings }
+    isDirty.value = true
+  }
+
   /** Set active block */
   function setActiveBlock(blockId: string | null) {
     activeBlockId.value = blockId
@@ -270,6 +278,7 @@ export const useEditorStore = defineStore('editor', () => {
     moveBlockDown,
     updateBlockContent,
     updateBlockSettings,
+    updateBlockSettingsSilent,
     setActiveBlock,
     reorderBlocks,
     undo,

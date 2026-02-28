@@ -103,12 +103,18 @@ function onResize(e: MouseEvent) {
   const delta = e.clientY - startY
   const newHeight = Math.max(80, Math.round(startHeight + delta))
   currentHeight.value = newHeight + 'px'
-  // Live-update so block reflects the new height immediately
-  editorStore.updateBlockSettings(props.block.id, { minHeight: newHeight + 'px' })
+  // Live-update without polluting undo history on every mouse move frame
+  editorStore.updateBlockSettingsSilent(props.block.id, { minHeight: newHeight + 'px' })
 }
 
 function stopResize() {
+  if (!resizing.value) return
   resizing.value = false
+  // Commit one history entry with the final height
+  const finalHeight = props.block.settings.minHeight
+  if (finalHeight) {
+    editorStore.updateBlockSettings(props.block.id, { minHeight: finalHeight })
+  }
   currentHeight.value = ''
   document.removeEventListener('mousemove', onResize)
   document.removeEventListener('mouseup', stopResize)

@@ -25,6 +25,7 @@ class BlockSettingsSchema(BaseModel):
     paddingBottom: str = "60px"
     backgroundColor: str = "#ffffff"
     backgroundImage: Optional[str] = None
+    minHeight: Optional[str] = None
     align: Optional[str] = "center"
     fullWidth: Optional[bool] = False
     animation: Optional[str] = None
