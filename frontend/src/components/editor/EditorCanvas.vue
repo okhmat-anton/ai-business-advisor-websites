@@ -61,8 +61,6 @@ const fontVars = computed(() => {
   }
 })
 
-const sortedBlocks = computed(() => editorStore.sortedBlocks)
-
 const canvasStyle = computed(() => {
   if (currentDevice.value === 'desktop') {
     return { maxWidth: '100%' }
