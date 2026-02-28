@@ -1,6 +1,11 @@
 <template>
   <!-- Cover: full-width with centered text overlay -->
-  <div class="cover-block cover-block-01" :style="coverStyle">
+  <div
+    ref="coverRef"
+    class="cover-block cover-block-01"
+    :class="{ 'cover-parallax': settings.parallax && bgImage }"
+    :style="coverStyle"
+  >
     <div class="cover-overlay" :style="{ opacity: content.overlayOpacity || 0.5 }"></div>
     <div class="cover-content">
       <h1 class="cover-title" :style="textStyle(content, 'title')">{{ content.title }}</h1>
@@ -13,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { textStyle } from '@/utils/textStyle'
 
 const props = defineProps<{
@@ -21,14 +26,14 @@ const props = defineProps<{
   settings: Record<string, any>
 }>()
 
+const coverRef = ref<HTMLElement | null>(null)
+const bgImage = computed(() => props.settings.backgroundImage || props.content.backgroundImage || '')
+
 const coverStyle = computed(() => {
   const mh = props.settings.minHeight
   return {
-    backgroundImage: `url(${props.settings.backgroundImage || props.content.backgroundImage || ''})`,
+    backgroundImage: bgImage.value ? `url(${bgImage.value})` : undefined,
     backgroundColor: props.settings.backgroundColor || '#1a1a2e',
-    // If a fixed value is stored (e.g. "720px") use it directly.
-    // If it's viewport-relative (100vh) or unset, use --cover-vh so that the 
-    // editor toolbar offset is accounted for (editor: calc(100vh-64px), published: 100vh).
     minHeight: mh && !mh.includes('vh') ? mh : 'var(--cover-vh, 100vh)',
   }
 })
@@ -43,6 +48,17 @@ const coverStyle = computed(() => {
   background-size: cover;
   background-position: center;
   color: #fff;
+}
+/* Parallax via CSS: background fixed to viewport while content scrolls */
+.cover-parallax {
+  background-attachment: fixed;
+  background-size: cover;
+}
+/* iOS/mobile: fixed attachment is unsupported, fall back gracefully */
+@media (hover: none) {
+  .cover-parallax {
+    background-attachment: scroll;
+  }
 }
 .cover-overlay {
   position: absolute;

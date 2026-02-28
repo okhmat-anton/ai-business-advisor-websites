@@ -209,6 +209,8 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
             )
             if bg_img:
                 cover_style += f"background-image:url('{esc(bg_img)}');background-size:cover;background-position:center;"
+                if settings.get("parallax"):
+                    cover_style += "background-attachment:fixed;"
             overlay_div = f'<div style="position:absolute;inset:0;background:rgba(0,0,0,{overlay});"></div>' if bg_img else ""
             title_style_raw = _text_css(content, 'title', 'clamp(2rem,5vw,3.5rem)')
             # Ensure important visual properties are always present

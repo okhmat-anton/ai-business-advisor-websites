@@ -1,6 +1,10 @@
 <template>
   <!-- Cover: left-aligned text -->
-  <div class="cover-block cover-block-02" :style="coverStyle">
+  <div
+    class="cover-block cover-block-02"
+    :class="{ 'cover-parallax': settings.parallax && bgImage }"
+    :style="coverStyle"
+  >
     <div class="cover-overlay" :style="{ opacity: content.overlayOpacity || 0.6 }"></div>
     <div class="cover-content">
       <h1 class="cover-title" :style="textStyle(content, 'title')">{{ content.title }}</h1>
@@ -21,10 +25,12 @@ const props = defineProps<{
   settings: Record<string, any>
 }>()
 
+const bgImage = computed(() => props.settings.backgroundImage || props.content.backgroundImage || '')
+
 const coverStyle = computed(() => {
   const mh = props.settings.minHeight
   return {
-    backgroundImage: `url(${props.settings.backgroundImage || props.content.backgroundImage || ''})`,
+    backgroundImage: bgImage.value ? `url(${bgImage.value})` : undefined,
     backgroundColor: props.settings.backgroundColor || '#0f3460',
     minHeight: mh && !mh.includes('vh') ? mh : 'var(--cover-vh, 100vh)',
   }
@@ -39,6 +45,13 @@ const coverStyle = computed(() => {
   background-size: cover;
   background-position: center;
   color: #fff;
+}
+.cover-parallax {
+  background-attachment: fixed;
+  background-size: cover;
+}
+@media (hover: none) {
+  .cover-parallax { background-attachment: scroll; }
 }
 .cover-overlay {
   position: absolute;

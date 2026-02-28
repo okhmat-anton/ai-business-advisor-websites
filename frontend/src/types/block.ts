@@ -22,6 +22,7 @@ export interface IBlockSettings {
   backgroundColor: string
   backgroundImage?: string
   minHeight?: string       // e.g. '100vh', '600px', 'auto'
+  parallax?: boolean       // CSS background-attachment:fixed scrolling effect
   align?: 'left' | 'center' | 'right'
   fullWidth?: boolean
   animation?: string
