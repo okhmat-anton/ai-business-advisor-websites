@@ -58,6 +58,9 @@ const fontVars = computed(() => {
   return {
     '--font-heading': fonts?.heading ? `"${fonts.heading}", sans-serif` : 'inherit',
     '--font-body': fonts?.body ? `"${fonts.body}", sans-serif` : 'inherit',
+    // Compensate for the 64px editor toolbar so 100vh-based cover heights
+    // match the published page where there is no toolbar offset.
+    '--cover-vh': 'calc(100vh - 64px)',
   }
 })
 

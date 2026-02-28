@@ -21,12 +21,17 @@ const props = defineProps<{
   settings: Record<string, any>
 }>()
 
-const coverStyle = computed(() => ({
-  backgroundImage: `url(${props.settings.backgroundImage || props.content.backgroundImage || ''})`,
-  backgroundColor: props.settings.backgroundColor || '#1a1a2e',
-  // minHeight from settings (set by resize handle or SettingsPanel), default full viewport
-  minHeight: props.settings.minHeight || '100vh',
-}))
+const coverStyle = computed(() => {
+  const mh = props.settings.minHeight
+  return {
+    backgroundImage: `url(${props.settings.backgroundImage || props.content.backgroundImage || ''})`,
+    backgroundColor: props.settings.backgroundColor || '#1a1a2e',
+    // If a fixed value is stored (e.g. "720px") use it directly.
+    // If it's viewport-relative (100vh) or unset, use --cover-vh so that the 
+    // editor toolbar offset is accounted for (editor: calc(100vh-64px), published: 100vh).
+    minHeight: mh && !mh.includes('vh') ? mh : 'var(--cover-vh, 100vh)',
+  }
+})
 </script>
 
 <style scoped>

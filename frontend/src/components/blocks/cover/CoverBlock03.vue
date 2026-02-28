@@ -22,11 +22,14 @@ const props = defineProps<{
   settings: Record<string, any>
 }>()
 
-const coverStyle = computed(() => ({
-  backgroundImage: `url(${props.settings.backgroundImage || props.content.backgroundImage || ''})`,
-  backgroundColor: props.settings.backgroundColor || '#16213e',
-  minHeight: props.settings.minHeight || '100vh',
-}))
+const coverStyle = computed(() => {
+  const mh = props.settings.minHeight
+  return {
+    backgroundImage: `url(${props.settings.backgroundImage || props.content.backgroundImage || ''})`,
+    backgroundColor: props.settings.backgroundColor || '#16213e',
+    minHeight: mh && !mh.includes('vh') ? mh : 'var(--cover-vh, 100vh)',
+  }
+})
 </script>
 
 <style scoped>
