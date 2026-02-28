@@ -12,11 +12,11 @@
         <v-icon size="18">mdi-monitor</v-icon>
         <v-tooltip activator="parent" location="bottom">Desktop (1200px)</v-tooltip>
       </v-btn>
-      <v-btn value="tablet" size="small">
+      <v-btn value="tablet_v" size="small">
         <v-icon size="18">mdi-tablet</v-icon>
         <v-tooltip activator="parent" location="bottom">Tablet (768px)</v-tooltip>
       </v-btn>
-      <v-btn value="mobile" size="small">
+      <v-btn value="phone_v" size="small">
         <v-icon size="18">mdi-cellphone</v-icon>
         <v-tooltip activator="parent" location="bottom">Mobile (375px)</v-tooltip>
       </v-btn>
