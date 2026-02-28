@@ -165,3 +165,30 @@ export async function fetchServerInfo(): Promise<{ serverIp: string }> {
   const { data } = await apiClient.get('/server-info')
   return data
 }
+
+// ========== Admin Settings ==========
+
+export interface IS3Settings {
+  enabled: boolean
+  bucket: string
+  region: string
+  accessKey: string
+  secretKey: string
+  endpointUrl: string
+  publicUrl: string
+  folder: string
+}
+
+export interface IAdminSettings {
+  s3: IS3Settings
+}
+
+export async function getAdminSettings(): Promise<IAdminSettings> {
+  const { data } = await apiClient.get('/admin/settings')
+  return data
+}
+
+export async function updateAdminSettings(payload: Partial<IAdminSettings>): Promise<IAdminSettings> {
+  const { data } = await apiClient.patch('/admin/settings', payload)
+  return data
+}

@@ -2,6 +2,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import type { ISite, IPage } from '@/types/site'
 import type { IBlock, IBlockTemplate, BlockCategory } from '@/types/block'
+import type { IAdminSettings } from './real'
 
 // Simulated delay for realistic behavior
 const delay = (ms: number = 300) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -813,4 +814,32 @@ export async function enableSsl(siteId: string, domainId: string): Promise<{ sta
 export async function fetchServerInfo(): Promise<{ serverIp: string }> {
   await delay(100)
   return { serverIp: '127.0.0.1' }
+}
+
+// ========== Admin Settings ==========
+
+let _mockAdminSettings: IAdminSettings = {
+  s3: {
+    enabled: false,
+    bucket: '',
+    region: 'us-east-1',
+    accessKey: '',
+    secretKey: '',
+    endpointUrl: '',
+    publicUrl: '',
+    folder: 'uploads',
+  },
+}
+
+export async function getAdminSettings(): Promise<IAdminSettings> {
+  await delay(200)
+  return structuredClone(_mockAdminSettings)
+}
+
+export async function updateAdminSettings(payload: Partial<IAdminSettings>): Promise<IAdminSettings> {
+  await delay(300)
+  if (payload.s3) {
+    _mockAdminSettings.s3 = { ..._mockAdminSettings.s3, ...payload.s3 }
+  }
+  return structuredClone(_mockAdminSettings)
 }
