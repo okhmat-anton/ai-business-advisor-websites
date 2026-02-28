@@ -69,8 +69,8 @@
         <div class="d-flex gap-1 mb-1">
           <v-text-field
             :model-value="activeBlock.content['titleFontSize'] || ''"
-            @update:model-value="updateContent('titleFontSize', $event || undefined)"
-            placeholder="Size px"
+            @update:model-value="updateContent('titleFontSize', $event ? Number($event) : undefined)"
+            placeholder="Size (px)"
             density="compact"
             variant="outlined"
             hide-details
@@ -102,8 +102,8 @@
         <div class="d-flex gap-1 mb-3">
           <v-text-field
             :model-value="activeBlock.content['subtitleFontSize'] || ''"
-            @update:model-value="updateContent('subtitleFontSize', $event || undefined)"
-            placeholder="Size px"
+            @update:model-value="updateContent('subtitleFontSize', $event ? Number($event) : undefined)"
+            placeholder="Size (px)"
             density="compact"
             variant="outlined"
             hide-details
@@ -138,8 +138,8 @@
             <div class="d-flex gap-1 mb-1 align-center">
               <v-text-field
                 :model-value="activeBlock.content[(key as string) + 'FontSize'] || ''"
-                @update:model-value="updateContent((key as string) + 'FontSize', $event || undefined)"
-                placeholder="Size px"
+                @update:model-value="updateContent((key as string) + 'FontSize', $event ? Number($event) : undefined)"
+                placeholder="Size (px)"
                 density="compact"
                 variant="outlined"
                 hide-details

@@ -23,7 +23,9 @@ export function textStyle(
   const fs = content?.[`${key}FontSize`]
   const fw = content?.[`${key}FontWeight`]
   if (fs !== undefined && fs !== '') {
-    style.fontSize = typeof fs === 'number' ? `${fs}px` : String(fs)
+    const fsStr = String(fs).trim()
+    // Add px unit if value is a plain number (no unit suffix)
+    style.fontSize = /^\d+(\.\d+)?$/.test(fsStr) ? `${fsStr}px` : fsStr
   }
   if (fw !== undefined && fw !== '') {
     style.fontWeight = String(fw)
