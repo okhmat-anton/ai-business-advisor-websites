@@ -17,6 +17,7 @@ const blockStyle = useBlockStyle(props.settings)
 <style scoped>
 .text-block-01 { width: 100%; }
 .text-container { max-width: 800px; margin: 0 auto; padding: 0 40px; }
+@container (max-width: 768px) { .text-container { padding: 0 20px; } }
 .text-container h2 { font-size: 32px; font-weight: 700; margin-bottom: 20px; color: #212121; }
 .text-container p { font-size: 17px; line-height: 1.8; color: #555; }
 </style>

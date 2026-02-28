@@ -35,6 +35,7 @@ const footerStyle = computed(() => {
 <style scoped>
 .footer-block-01 { width: 100%; color: #fff; }
 .footer-container { max-width: 1200px; margin: 0 auto; text-align: center; padding: 0 40px; }
+@container (max-width: 768px) { .footer-container { padding: 0 20px; } }
 .social-links { display: flex; gap: 20px; justify-content: center; margin-bottom: 16px; }
 .social-links a { color: rgba(255,255,255,0.7); text-decoration: none; transition: color 0.2s; }
 .social-links a:hover { color: #fff; }

@@ -19,6 +19,7 @@ const blockStyle = useBlockStyle(props.settings)
 <style scoped>
 .gallery-block-01 { width: 100%; }
 .gallery-container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+@container (max-width: 768px) { .gallery-container { padding: 0 16px; } }
 .gallery-grid { display: grid; gap: 16px; }
 .gallery-item img { width: 100%; border-radius: 6px; object-fit: cover; aspect-ratio: 4/3; }
 </style>

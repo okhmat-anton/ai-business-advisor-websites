@@ -28,4 +28,9 @@ const blockStyle = useBlockStyle(props.settings)
 .card-item { text-align: center; padding: 30px 20px; }
 .card-item h3 { font-size: 20px; font-weight: 700; margin: 16px 0 10px; color: #212121; }
 .card-item p { font-size: 15px; line-height: 1.6; color: #666; }
+@container (max-width: 768px) {
+  .columns-container { padding: 0 20px; }
+  .columns-title { font-size: 28px; margin-bottom: 30px; }
+  .cards-grid { grid-template-columns: 1fr; gap: 24px; }
+}
 </style>

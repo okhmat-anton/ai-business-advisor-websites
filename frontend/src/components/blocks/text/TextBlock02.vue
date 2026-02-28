@@ -23,5 +23,8 @@ const blockStyle = useBlockStyle(props.settings)
 .text-container h2 { font-size: 32px; font-weight: 700; margin-bottom: 30px; color: #212121; text-align: center; }
 .two-columns { display: flex; gap: 40px; }
 .two-columns p { flex: 1; font-size: 16px; line-height: 1.7; color: #555; }
-@container (max-width: 768px) { .two-columns { flex-direction: column; } }
+@container (max-width: 768px) {
+  .text-container { padding: 0 20px; }
+  .two-columns { flex-direction: column; gap: 20px; }
+}
 </style>

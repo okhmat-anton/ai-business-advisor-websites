@@ -30,4 +30,10 @@ const blockStyle = useBlockStyle(props.settings)
 .counter-item { display: flex; flex-direction: column; align-items: center; }
 .counter-value { font-size: 42px; font-weight: 700; color: #1976D2; }
 .counter-label { font-size: 14px; color: #888; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+@container (max-width: 768px) {
+  .about-container { padding: 0 20px; }
+  .about-container h2 { font-size: 26px; }
+  .counters { gap: 30px; }
+  .counter-value { font-size: 32px; }
+}
 </style>

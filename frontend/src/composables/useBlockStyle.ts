@@ -10,6 +10,7 @@ export function useBlockStyle(
 ) {
   return computed(() => {
     const s: Record<string, string> = {
+      containerType: 'inline-size',
       backgroundColor: settings.backgroundColor || '',
       paddingTop: settings.paddingTop || '60px',
       paddingBottom: settings.paddingBottom || '60px',

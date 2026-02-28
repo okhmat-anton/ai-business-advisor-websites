@@ -29,6 +29,7 @@ const blockStyle = useBlockStyle(props.settings)
 .about-image { flex: 1; }
 .about-image img { width: 100%; border-radius: 8px; object-fit: cover; }
 @container (max-width: 768px) {
-  .about-container { flex-direction: column; gap: 30px; }
+  .about-container { flex-direction: column; gap: 30px; padding: 0 20px; }
+  .about-text h2 { font-size: 28px; }
 }
 </style>

@@ -17,6 +17,7 @@ const blockStyle = useBlockStyle(props.settings)
 <style scoped>
 .heading-block-01 { width: 100%; }
 .heading-container { max-width: 900px; margin: 0 auto; padding: 0 40px; }
+@container (max-width: 768px) { .heading-container { padding: 0 20px; } }
 .heading-title { font-size: 40px; font-weight: 700; color: #212121; margin-bottom: 8px; }
 .heading-subtitle { font-size: 18px; color: #888; }
 </style>

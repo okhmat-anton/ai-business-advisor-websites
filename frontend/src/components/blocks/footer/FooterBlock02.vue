@@ -58,5 +58,5 @@ const footerStyle = computed(() => {
 .footer-column a:hover { color: #fff; }
 .footer-bottom { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
 .footer-bottom p { font-size: 13px; color: rgba(255,255,255,0.4); }
-@container (max-width: 768px) { .footer-top { flex-direction: column; gap: 30px; } }
+@container (max-width: 768px) { .footer-container { padding: 0 20px; } .footer-top { flex-direction: column; gap: 30px; } }
 </style>

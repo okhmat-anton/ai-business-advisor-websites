@@ -30,6 +30,7 @@ function onSubmit() {
 <style scoped>
 .form-block-01 { width: 100%; }
 .form-container { max-width: 600px; margin: 0 auto; padding: 0 40px; text-align: center; }
+@container (max-width: 768px) { .form-container { padding: 0 20px; } }
 .form-container h2 { font-size: 32px; font-weight: 700; color: #212121; margin-bottom: 8px; }
 .form-subtitle { color: #666; margin-bottom: 30px; }
 .form-fields { display: flex; flex-direction: column; gap: 16px; text-align: left; }

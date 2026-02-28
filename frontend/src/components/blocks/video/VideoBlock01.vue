@@ -19,6 +19,7 @@ const blockStyle = useBlockStyle(props.settings)
 <style scoped>
 .video-block-01 { width: 100%; }
 .video-container { max-width: 900px; margin: 0 auto; padding: 0 40px; text-align: center; }
+@container (max-width: 768px) { .video-container { padding: 0 16px; } }
 .video-title { font-size: 28px; color: #fff; margin-bottom: 24px; }
 .video-wrapper { width: 100%; border-radius: 8px; overflow: hidden; }
 .video-wrapper iframe { width: 100%; height: 100%; }

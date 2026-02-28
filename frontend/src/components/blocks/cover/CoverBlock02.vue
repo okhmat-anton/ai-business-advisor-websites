@@ -75,6 +75,11 @@ const coverStyle = computed(() => {
   margin-bottom: 32px;
   opacity: 0.85;
 }
+@container (max-width: 768px) {
+  .cover-content { padding: 40px 24px; }
+  .cover-title { font-size: 36px; }
+  .cover-subtitle { font-size: 16px; }
+}
 .cover-btn {
   display: inline-block;
   padding: 14px 36px;

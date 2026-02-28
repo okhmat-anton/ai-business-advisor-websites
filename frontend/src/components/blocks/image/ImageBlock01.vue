@@ -17,6 +17,7 @@ const blockStyle = useBlockStyle(props.settings)
 <style scoped>
 .image-block-01 { width: 100%; }
 .image-container { max-width: 1000px; margin: 0 auto; padding: 0 40px; }
+@container (max-width: 768px) { .image-container { padding: 0 16px; } }
 .image-container img { width: 100%; border-radius: 8px; }
 .caption { font-size: 14px; color: #888; margin-top: 12px; }
 </style>

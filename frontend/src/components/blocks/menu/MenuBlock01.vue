@@ -26,6 +26,7 @@ defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 .menu-links a:hover { color: #1976D2; }
 .menu-cta { padding: 8px 24px; background: #1976D2; color: #fff; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 14px; white-space: nowrap; }
 @container (max-width: 768px) {
+  .menu-container { padding: 14px 20px; }
   .menu-links { display: none; }
 }
 </style>
