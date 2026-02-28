@@ -28,5 +28,5 @@ function onSubmit() { alert('Subscribed (mock)') }
 .subscribe-form input { flex: 1; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: #fff; border-radius: 4px; font-size: 15px; }
 .subscribe-form input::placeholder { color: rgba(255,255,255,0.5); }
 .subscribe-form button { padding: 14px 28px; background: #fff; color: #1a1a2e; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; }
-@media (max-width: 480px) { .subscribe-form { flex-direction: column; } }
+@container (max-width: 480px) { .subscribe-form { flex-direction: column; } }
 </style>

@@ -28,7 +28,7 @@ const blockStyle = useBlockStyle(props.settings)
 .about-text p { font-size: 17px; line-height: 1.7; color: #555; }
 .about-image { flex: 1; }
 .about-image img { width: 100%; border-radius: 8px; object-fit: cover; }
-@media (max-width: 768px) {
+@container (max-width: 768px) {
   .about-container { flex-direction: column; gap: 30px; }
 }
 </style>

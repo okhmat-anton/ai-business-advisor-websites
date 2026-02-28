@@ -110,5 +110,8 @@ function openSettings(blockId: string) {
 .empty-state p { font-size: 14px; margin-bottom: 8px; }
 .blocks-list {
   background: #fff;
+  /* Container queries: blocks respond to canvas width, not viewport */
+  container-type: inline-size;
+  container-name: editor-canvas;
 }
 </style>
