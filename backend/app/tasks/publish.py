@@ -149,6 +149,14 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
     def esc(v) -> str:
         return html_lib.escape(str(v)) if v else ""
 
+    def safe_html(v) -> str:
+        """Pass HTML content through as-is (from rich text editor), strip only script tags."""
+        if not v:
+            return ""
+        import re
+        cleaned = re.sub(r'<script[\s\S]*?</script>', '', str(v), flags=re.IGNORECASE)
+        return cleaned
+
     def _px(val) -> str:
         """Convert a content fontSize value (int, float, or string) to a CSS px value."""
         if val is None or val == "":
@@ -198,7 +206,7 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
             bg_img = settings.get("backgroundImage") or content.get("backgroundImage", "")
             overlay = content.get("overlayOpacity", 0.5)
             t = esc(content.get("title", ""))
-            sub = esc(content.get("subtitle", ""))
+            sub = safe_html(content.get("subtitle", ""))
             btn_text = esc(content.get("buttonText", ""))
             btn_url = esc(content.get("buttonUrl", "#"))
             # Use stored minHeight (set by drag handle) or fall back to a sensible default
@@ -223,7 +231,7 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
   {overlay_div}
   <div style="position:relative;z-index:1;padding:40px;max-width:800px;">
     <h1 style="{title_style}">{t}</h1>
-    {"<p style='" + sub_style + "'>" + sub + "</p>" if sub else ""}
+    {"<div style='" + sub_style + "'>" + sub + "</div>" if sub else ""}
     {btn_html}
   </div>
 </div>'''
@@ -273,7 +281,7 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
 
         elif block_type == "FooterBlock02":
             logo = esc(content.get("logo", ""))
-            desc = esc(content.get("description", ""))
+            desc = safe_html(content.get("description", ""))
             columns = content.get("columns", [])
             copyright = esc(content.get("copyright", ""))
             cols_html = ""
@@ -290,7 +298,7 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
     <div style="display:flex;flex-wrap:wrap;gap:40px;margin-bottom:40px;">
       <div style="flex:1.5;min-width:200px;">
         <h3 style="font-size:22px;color:#fff;margin-bottom:10px;">{logo}</h3>
-        <p style="font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;">{desc}</p>
+        <div style="font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;">{desc}</div>
       </div>
       {cols_html}
     </div>
@@ -304,10 +312,10 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
         elif block_type in ("TextBlock01", "TextBlock02", "AboutBlock01", "AboutBlock02",
                             "HeadingBlock01"):
             t = esc(content.get("title", ""))
-            sub = esc(content.get("subtitle", content.get("text", "")))
+            sub = safe_html(content.get("subtitle", content.get("text", "")))
             align = settings.get("align", "center")
-            left_text = esc(content.get("leftText", ""))
-            right_text = esc(content.get("rightText", ""))
+            left_text = safe_html(content.get("leftText", ""))
+            right_text = safe_html(content.get("rightText", ""))
             img = esc(content.get("image", ""))
             counters = content.get("counters", [])
             level = content.get("level", "h2")
@@ -321,7 +329,7 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
             if sub:
                 sub_style_raw = _text_css(content, 'subtitle', '16px')
                 sub_style = f"color:#555;line-height:1.7;max-width:720px;margin:0 auto 20px;{sub_style_raw}"
-                body_parts.append(f'<p style="{sub_style}">{sub}</p>')
+                body_parts.append(f'<div style="{sub_style}">{sub}</div>')
             if left_text or right_text:
                 body_parts.append(f'<div style="display:flex;gap:40px;text-align:left;"><div style="flex:1"><p style="color:#555;line-height:1.7;">{left_text}</p></div><div style="flex:1"><p style="color:#555;line-height:1.7;">{right_text}</p></div></div>')
             if img:
