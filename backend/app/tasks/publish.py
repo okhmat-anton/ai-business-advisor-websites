@@ -312,6 +312,8 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
         elif block_type in ("TextBlock01", "TextBlock02", "AboutBlock01", "AboutBlock02",
                             "HeadingBlock01"):
             t = esc(content.get("title", ""))
+            # Determine which content key holds the body text — subtitle takes priority
+            sub_key = "subtitle" if content.get("subtitle") else "text"
             sub = safe_html(content.get("subtitle", content.get("text", "")))
             align = settings.get("align", "center")
             left_text = safe_html(content.get("leftText", ""))
@@ -327,11 +329,14 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
                 t_style = f"color:#212121;margin-bottom:16px;{t_style_raw}" if 'font-weight' in t_style_raw else f"color:#212121;margin-bottom:16px;font-weight:700;{t_style_raw}"
                 body_parts.append(f'<{tag} style="{t_style}">{t}</{tag}>')
             if sub:
-                sub_style_raw = _text_css(content, 'subtitle', '16px')
+                # Use the correct key to pick up the right FontSize/FontWeight
+                sub_style_raw = _text_css(content, sub_key, '16px')
                 sub_style = f"color:#555;line-height:1.7;max-width:720px;margin:0 auto 20px;{sub_style_raw}"
                 body_parts.append(f'<div style="{sub_style}">{sub}</div>')
             if left_text or right_text:
-                body_parts.append(f'<div style="display:flex;gap:40px;text-align:left;"><div style="flex:1"><p style="color:#555;line-height:1.7;">{left_text}</p></div><div style="flex:1"><p style="color:#555;line-height:1.7;">{right_text}</p></div></div>')
+                lt_style = f"color:#555;line-height:1.7;{_text_css(content, 'leftText', '16px')}"
+                rt_style = f"color:#555;line-height:1.7;{_text_css(content, 'rightText', '16px')}"
+                body_parts.append(f'<div style="display:flex;gap:40px;text-align:left;"><div style="flex:1"><div style="{lt_style}">{left_text}</div></div><div style="flex:1"><div style="{rt_style}">{right_text}</div></div></div>')
             if img:
                 body_parts.append(f'<img src="{img}" style="max-width:100%;width:500px;border-radius:12px;" alt="" />')
             if counters:

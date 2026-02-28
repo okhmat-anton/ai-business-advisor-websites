@@ -385,15 +385,16 @@ function isColorField(key: string): boolean {
 }
 
 function isLongText(key: string, value: string): boolean {
-  // Fields that should NEVER get rich-text (one-liners, URLs, identifiers)
-  const neverRich = [
-    'title', 'logo', 'heading', 'buttontext', 'submittext', 'placeholder',
-    'label', 'name', 'copyright', 'caption', 'level', 'anchor', 'cta',
-  ]
   const k = key.toLowerCase()
-  if (neverRich.some((n) => k.includes(n))) return false
-  const longKeys = ['description', 'text', 'subtitle', 'content', 'body', 'paragraph']
-  return longKeys.some((lk) => k.includes(lk))
+  // Always rich text for these field name patterns (exact or suffix)
+  const richPatterns = ['subtitle', 'description', 'body', 'paragraph', 'content']
+  if (richPatterns.some((p) => k === p || k.endsWith(p))) return true
+  // 'text' field or fields ending with 'text' — but not button/cta/submit labels
+  if (k === 'text' || k.endsWith('text')) {
+    if (k.includes('button') || k.includes('submit') || k.includes('cta') || k.includes('placeholder')) return false
+    return true
+  }
+  return false
 }
 
 function formatLabel(key: string): string {
