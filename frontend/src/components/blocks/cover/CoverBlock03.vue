@@ -25,13 +25,13 @@ const props = defineProps<{
 const coverStyle = computed(() => ({
   backgroundImage: `url(${props.settings.backgroundImage || props.content.backgroundImage || ''})`,
   backgroundColor: props.settings.backgroundColor || '#16213e',
+  minHeight: props.settings.minHeight || '100vh',
 }))
 </script>
 
 <style scoped>
 .cover-block-03 {
   position: relative;
-  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;

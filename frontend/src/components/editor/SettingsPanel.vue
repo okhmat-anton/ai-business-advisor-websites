@@ -59,6 +59,29 @@
         </v-row>
       </div>
 
+      <!-- Min Height -->
+      <div class="setting-group">
+        <div class="text-subtitle-2 mb-2">Block Height</div>
+        <v-text-field
+          :model-value="minHeightValue"
+          @update:model-value="onMinHeightInput"
+          label="Min Height"
+          density="compact"
+          variant="outlined"
+          hide-details
+          placeholder="e.g. 600 or 100vh"
+          prepend-inner-icon="mdi-arrow-expand-vertical"
+        >
+          <template #append-inner>
+            <span class="text-caption text-grey">px / vh</span>
+          </template>
+        </v-text-field>
+        <div class="text-caption text-grey mt-1">
+          Drag the ▬ handle at the bottom of the block, or type a value.
+          Leave empty for auto height.
+        </div>
+      </div>
+
       <!-- Background color -->
       <div class="setting-group">
         <div class="text-subtitle-2 mb-2">Background Color</div>
@@ -229,6 +252,25 @@ const animationOptions = [
 function updateSetting(key: string, value: any) {
   if (!activeBlock.value) return
   editorStore.updateBlockSettings(activeBlock.value.id, { [key]: value })
+}
+
+// Min Height helpers ─────────────────────────────────────────────────────────
+// Display: strip 'px' so the input just shows a number; keep 'vh' values as-is
+const minHeightValue = computed<string>(() => {
+  const mh = settings.value.minHeight ?? ''
+  if (!mh) return ''
+  return mh.endsWith('px') ? mh.slice(0, -2) : mh
+})
+
+function onMinHeightInput(v: string) {
+  const raw = (v ?? '').trim()
+  if (!raw) {
+    updateSetting('minHeight', undefined)
+    return
+  }
+  // If user typed a plain number, append px; otherwise accept as-is (e.g. '100vh')
+  const val = /^\d+(\.\d+)?$/.test(raw) ? `${raw}px` : raw
+  updateSetting('minHeight', val)
 }
 
 function close() {

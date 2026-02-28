@@ -184,7 +184,10 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
         bg = esc(settings.get("backgroundColor", "#ffffff"))
         pt = esc(settings.get("paddingTop", "60px"))
         pb = esc(settings.get("paddingBottom", "60px"))
+        min_h = settings.get("minHeight", "")
         section_style = f"background-color:{bg};padding:{pt} 0 {pb};"
+        if min_h:
+            section_style += f"min-height:{esc(min_h)};"
 
         inner = ""
 
@@ -198,7 +201,12 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
             sub = esc(content.get("subtitle", ""))
             btn_text = esc(content.get("buttonText", ""))
             btn_url = esc(content.get("buttonUrl", "#"))
-            cover_style = f"position:relative;min-height:540px;display:flex;align-items:center;justify-content:center;text-align:center;"
+            # Use stored minHeight (set by drag handle) or fall back to a sensible default
+            cover_min_h = settings.get("minHeight") or "100vh"
+            cover_style = (
+                f"position:relative;min-height:{esc(cover_min_h)};display:flex;"
+                f"align-items:center;justify-content:center;text-align:center;"
+            )
             if bg_img:
                 cover_style += f"background-image:url('{esc(bg_img)}');background-size:cover;background-position:center;"
             overlay_div = f'<div style="position:absolute;inset:0;background:rgba(0,0,0,{overlay});"></div>' if bg_img else ""
