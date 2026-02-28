@@ -815,9 +815,22 @@ export async function fetchServerInfo(): Promise<{ serverIp: string }> {
   return { serverIp: '127.0.0.1' }
 }
 
-// Mock file upload — returns a local blob URL for preview
+// Mock file upload — sends to real backend local disk storage so the URL persists
+// across page reloads and works in published static HTML.
 export async function uploadFile(file: File): Promise<{ url: string; filename: string }> {
-  await delay(400)
-  const url = URL.createObjectURL(file)
-  return { url, filename: file.name }
+  const formData = new FormData()
+  formData.append('file', file)
+  try {
+    const { default: apiClient } = await import('./index')
+    const { data } = await apiClient.post('/uploads', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    const url: string = data.url || ''
+    const filename: string = data.filename || file.name
+    return { url, filename }
+  } catch {
+    // Fallback to blob URL if backend is not available (local dev without backend)
+    const url = URL.createObjectURL(file)
+    return { url, filename: file.name }
+  }
 }

@@ -23,7 +23,7 @@ const props = defineProps<{
 }>()
 
 const coverStyle = computed(() => ({
-  backgroundImage: `url(${props.content.backgroundImage || ''})`,
+  backgroundImage: `url(${props.settings.backgroundImage || props.content.backgroundImage || ''})`,
   backgroundColor: props.settings.backgroundColor || '#16213e',
 }))
 </script>

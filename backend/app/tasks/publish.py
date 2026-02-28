@@ -149,6 +149,33 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
     def esc(v) -> str:
         return html_lib.escape(str(v)) if v else ""
 
+    def _px(val) -> str:
+        """Convert a content fontSize value (int, float, or string) to a CSS px value."""
+        if val is None or val == "":
+            return ""
+        s = str(val).strip()
+        # Already has a unit (px, rem, em, vw…)
+        if any(s.endswith(u) for u in ("px", "rem", "em", "vw", "vh", "%")):
+            return s
+        try:
+            float(s)
+            return f"{s}px"
+        except ValueError:
+            return s
+
+    def _text_css(content: dict, key: str, default_size: str = "") -> str:
+        """Return inline CSS for a text element using stored fontSize/fontWeight."""
+        parts = []
+        fs = _px(content.get(f"{key}FontSize"))
+        fw = content.get(f"{key}FontWeight")
+        if fs:
+            parts.append(f"font-size:{fs}")
+        elif default_size:
+            parts.append(f"font-size:{default_size}")
+        if fw:
+            parts.append(f"font-weight:{fw}")
+        return ";".join(parts)
+
     blocks_html = ""
     for block in blocks:
         content = block.get("content", {})
@@ -163,7 +190,9 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
 
         # ── Cover blocks ───────────────────────────────────────────────────
         if block_type.startswith("CoverBlock"):
-            bg_img = content.get("backgroundImage", "")
+            # Background image can be stored in either settings (SettingsPanel upload)
+            # or content (ContentPanel / defaultContent). Settings takes priority.
+            bg_img = settings.get("backgroundImage") or content.get("backgroundImage", "")
             overlay = content.get("overlayOpacity", 0.5)
             t = esc(content.get("title", ""))
             sub = esc(content.get("subtitle", ""))
@@ -173,13 +202,18 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
             if bg_img:
                 cover_style += f"background-image:url('{esc(bg_img)}');background-size:cover;background-position:center;"
             overlay_div = f'<div style="position:absolute;inset:0;background:rgba(0,0,0,{overlay});"></div>' if bg_img else ""
+            title_style_raw = _text_css(content, 'title', 'clamp(2rem,5vw,3.5rem)')
+            # Ensure important visual properties are always present
+            title_style = f"color:#fff;margin-bottom:16px;line-height:1.2;{title_style_raw}" if 'font-weight' in title_style_raw else f"color:#fff;margin-bottom:16px;line-height:1.2;font-weight:800;{title_style_raw}"
+            sub_style_raw = _text_css(content, 'subtitle', '1.2rem')
+            sub_style = f"color:rgba(255,255,255,0.85);max-width:600px;margin:0 auto;line-height:1.6;{sub_style_raw}"
             btn_html = f'<a href="{btn_url}" style="display:inline-block;margin-top:24px;padding:14px 32px;background:#1976d2;color:#fff;border-radius:6px;text-decoration:none;font-size:16px;font-weight:600;">{btn_text}</a>' if btn_text else ""
             inner = f'''
 <div style="{cover_style}background-color:{bg};">
   {overlay_div}
   <div style="position:relative;z-index:1;padding:40px;max-width:800px;">
-    <h1 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:800;color:#fff;margin-bottom:16px;line-height:1.2;">{t}</h1>
-    {"<p style='font-size:1.2rem;color:rgba(255,255,255,0.85);max-width:600px;margin:0 auto;line-height:1.6;'>" + sub + "</p>" if sub else ""}
+    <h1 style="{title_style}">{t}</h1>
+    {"<p style='" + sub_style + "'>" + sub + "</p>" if sub else ""}
     {btn_html}
   </div>
 </div>'''
@@ -271,9 +305,13 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
             body_parts = []
             if t:
                 tag = level if level in ("h1","h2","h3","h4") else "h2"
-                body_parts.append(f'<{tag} style="font-size:clamp(1.6rem,3vw,2.5rem);font-weight:700;color:#212121;margin-bottom:16px;">{t}</{tag}>')
+                t_style_raw = _text_css(content, 'title', 'clamp(1.6rem,3vw,2.5rem)')
+                t_style = f"color:#212121;margin-bottom:16px;{t_style_raw}" if 'font-weight' in t_style_raw else f"color:#212121;margin-bottom:16px;font-weight:700;{t_style_raw}"
+                body_parts.append(f'<{tag} style="{t_style}">{t}</{tag}>')
             if sub:
-                body_parts.append(f'<p style="color:#555;line-height:1.7;font-size:16px;max-width:720px;margin:0 auto 20px;">{sub}</p>')
+                sub_style_raw = _text_css(content, 'subtitle', '16px')
+                sub_style = f"color:#555;line-height:1.7;max-width:720px;margin:0 auto 20px;{sub_style_raw}"
+                body_parts.append(f'<p style="{sub_style}">{sub}</p>')
             if left_text or right_text:
                 body_parts.append(f'<div style="display:flex;gap:40px;text-align:left;"><div style="flex:1"><p style="color:#555;line-height:1.7;">{left_text}</p></div><div style="flex:1"><p style="color:#555;line-height:1.7;">{right_text}</p></div></div>')
             if img:
@@ -367,7 +405,9 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
             t = esc(content.get("title", ""))
             sub = esc(content.get("subtitle", content.get("text", "")))
             if t or sub:
-                inner = f'<section style="{section_style}"><div style="max-width:1100px;margin:0 auto;padding:0 40px;text-align:center;">{"<h2 style=\'font-size:2rem;font-weight:700;color:#212121;margin-bottom:16px;\'>" + t + "</h2>" if t else ""}{"<p style=\'color:#555;line-height:1.7;\'>" + sub + "</p>" if sub else ""}</div></section>'
+                t_style = f"color:#212121;margin-bottom:16px;font-weight:700;{_text_css(content, 'title', '2rem')}"
+                sub_style = f"color:#555;line-height:1.7;{_text_css(content, 'subtitle', '')}"
+                inner = f'<section style="{section_style}"><div style="max-width:1100px;margin:0 auto;padding:0 40px;text-align:center;">{("<h2 style=\'" + t_style + "\'>" + t + "</h2>") if t else ""}{("<p style=\'" + sub_style + "\'>" + sub + "</p>") if sub else ""}</div></section>'
 
         blocks_html += inner
 
