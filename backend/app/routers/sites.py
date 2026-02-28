@@ -13,6 +13,7 @@ from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -191,18 +192,46 @@ async def update_site(
         current_gs.update(gs)
         site.global_settings = current_gs
 
+    new_subdomain = None
     for field, value in update_data.items():
         if field == "name":
             site.name = value
         elif field == "description":
             site.description = value
         elif field == "subdomain":
+            new_subdomain = value
             site.subdomain = value
         elif field == "favicon":
             site.favicon = value
 
+    # Check subdomain uniqueness before flushing
+    if new_subdomain is not None:
+        existing = await db.execute(
+            select(Site.id).where(
+                Site.subdomain == new_subdomain,
+                Site.id != uuid.UUID(site_id),
+            )
+        )
+        if existing.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Subdomain '{new_subdomain}' is already taken",
+            )
+
     site.updated_at = datetime.utcnow()
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        await db.rollback()
+        if "sites_subdomain_key" in str(exc.orig):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Subdomain is already taken",
+            ) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Database integrity error",
+        ) from exc
     await db.refresh(site, attribute_names=["pages", "domains"])
     return _site_to_response(site)
 
