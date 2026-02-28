@@ -1,5 +1,5 @@
 <template>
-  <section class="text-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}`, textAlign: settings.align }">
+  <section class="text-block-01" :style="blockStyle">
     <div class="text-container">
       <h2 v-if="content.title" :style="textStyle(content, 'title')">{{ content.title }}</h2>
       <p :style="textStyle(content, 'text', false)" v-html="content.text" />
@@ -9,7 +9,9 @@
 
 <script setup lang="ts">
 import { textStyle } from '@/utils/textStyle'
-defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+import { useBlockStyle } from '@/composables/useBlockStyle'
+const props = defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+const blockStyle = useBlockStyle(props.settings)
 </script>
 
 <style scoped>

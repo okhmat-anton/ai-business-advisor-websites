@@ -1,5 +1,5 @@
 <template>
-  <section class="image-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}`, textAlign: settings.align }">
+  <section class="image-block-01" :style="blockStyle">
     <div class="image-container">
       <img :src="content.image" :alt="content.alt || ''" />
       <p v-if="content.caption" class="caption" :style="textStyle(content, 'caption', false)">{{ content.caption }}</p>
@@ -9,7 +9,9 @@
 
 <script setup lang="ts">
 import { textStyle } from '@/utils/textStyle'
-defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+import { useBlockStyle } from '@/composables/useBlockStyle'
+const props = defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+const blockStyle = useBlockStyle(props.settings)
 </script>
 
 <style scoped>

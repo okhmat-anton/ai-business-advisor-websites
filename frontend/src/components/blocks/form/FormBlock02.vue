@@ -1,5 +1,5 @@
 <template>
-  <section class="form-block-02" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
+  <section class="form-block-02" :style="blockStyle">
     <div class="subscribe-container">
       <h2 :style="textStyle(content, 'title')">{{ content.title }}</h2>
       <p :style="textStyle(content, 'subtitle', false)" v-html="content.subtitle" />
@@ -13,7 +13,9 @@
 
 <script setup lang="ts">
 import { textStyle } from '@/utils/textStyle'
-defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+import { useBlockStyle } from '@/composables/useBlockStyle'
+const props = defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+const blockStyle = useBlockStyle(props.settings)
 function onSubmit() { alert('Subscribed (mock)') }
 </script>
 

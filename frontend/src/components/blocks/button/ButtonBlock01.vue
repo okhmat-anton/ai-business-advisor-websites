@@ -1,5 +1,5 @@
 <template>
-  <section class="button-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}`, textAlign: settings.align }">
+  <section class="button-block-01" :style="blockStyle">
     <div class="button-container">
       <a v-for="(btn, i) in content.buttons" :key="i" :href="btn.url || '#'"
          :class="['btn', `btn-${btn.style || 'primary'}`]">
@@ -10,7 +10,9 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+import { useBlockStyle } from '@/composables/useBlockStyle'
+const props = defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+const blockStyle = useBlockStyle(props.settings)
 </script>
 
 <style scoped>

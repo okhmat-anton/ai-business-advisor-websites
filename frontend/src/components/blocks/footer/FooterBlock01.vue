@@ -1,5 +1,5 @@
 <template>
-  <footer class="footer-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
+  <footer class="footer-block-01" :style="footerStyle">
     <div class="footer-container">
       <div v-if="content.socialLinks?.length" class="social-links">
         <a v-for="(link, i) in content.socialLinks" :key="i" :href="link.url">
@@ -12,8 +12,24 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { textStyle } from '@/utils/textStyle'
-defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+const props = defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+
+const footerStyle = computed(() => {
+  const s: Record<string, string> = {
+    backgroundColor: props.settings.backgroundColor || '#1a1a2e',
+    padding: `${props.settings.paddingTop} 0 ${props.settings.paddingBottom}`,
+  }
+  const img = props.settings.backgroundImage
+  if (img) {
+    s.backgroundImage = `url(${img})`
+    s.backgroundSize = 'cover'
+    s.backgroundPosition = 'center'
+    if (props.settings.parallax) s.backgroundAttachment = 'fixed'
+  }
+  return s
+})
 </script>
 
 <style scoped>

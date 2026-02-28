@@ -1,6 +1,6 @@
 <template>
   <!-- About: text left, image right -->
-  <section class="about-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
+  <section class="about-block-01" :style="blockStyle">
     <div class="about-container">
       <div class="about-text">
         <h2 :style="textStyle(content, 'title')">{{ content.title }}</h2>
@@ -15,7 +15,9 @@
 
 <script setup lang="ts">
 import { textStyle } from '@/utils/textStyle'
-defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+import { useBlockStyle } from '@/composables/useBlockStyle'
+const props = defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+const blockStyle = useBlockStyle(props.settings)
 </script>
 
 <style scoped>

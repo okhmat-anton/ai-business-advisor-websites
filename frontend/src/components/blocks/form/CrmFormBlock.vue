@@ -1,11 +1,7 @@
 <template>
   <section
     class="crm-form-block"
-    :style="{
-      backgroundColor: settings.backgroundColor,
-      paddingTop: settings.paddingTop,
-      paddingBottom: settings.paddingBottom,
-    }"
+    :style="blockStyle"
   >
     <div class="crm-form-inner">
       <h2 v-if="content.title" class="crm-form-title" :style="textStyle(content, 'title')">{{ content.title }}</h2>
@@ -29,8 +25,10 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick } from 'vue'
 import { textStyle } from '@/utils/textStyle'
+import { useBlockStyle } from '@/composables/useBlockStyle'
 
 const props = defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+const blockStyle = useBlockStyle(props.settings)
 
 const embedContainer = ref<HTMLElement | null>(null)
 

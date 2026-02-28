@@ -193,7 +193,12 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
         pt = esc(settings.get("paddingTop", "60px"))
         pb = esc(settings.get("paddingBottom", "60px"))
         min_h = settings.get("minHeight", "")
+        bg_img_section = settings.get("backgroundImage", "")
         section_style = f"background-color:{bg};padding:{pt} 0 {pb};"
+        if bg_img_section:
+            section_style += f"background-image:url('{esc(bg_img_section)}');background-size:cover;background-position:center;"
+            if settings.get("parallax"):
+                section_style += "background-attachment:fixed;"
         if min_h:
             section_style += f"min-height:{esc(min_h)};"
 

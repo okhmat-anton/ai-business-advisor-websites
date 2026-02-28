@@ -1,5 +1,5 @@
 <template>
-  <section class="video-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
+  <section class="video-block-01" :style="blockStyle">
     <div class="video-container">
       <h2 v-if="content.title" class="video-title" :style="textStyle(content, 'title')">{{ content.title }}</h2>
       <div class="video-wrapper" :style="{ aspectRatio: content.aspectRatio || '16/9' }">
@@ -11,7 +11,9 @@
 
 <script setup lang="ts">
 import { textStyle } from '@/utils/textStyle'
-defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+import { useBlockStyle } from '@/composables/useBlockStyle'
+const props = defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
+const blockStyle = useBlockStyle(props.settings)
 </script>
 
 <style scoped>
