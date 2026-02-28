@@ -192,19 +192,8 @@ async def update_site(
         current_gs.update(gs)
         site.global_settings = current_gs
 
-    new_subdomain = None
-    for field, value in update_data.items():
-        if field == "name":
-            site.name = value
-        elif field == "description":
-            site.description = value
-        elif field == "subdomain":
-            new_subdomain = value
-            site.subdomain = value
-        elif field == "favicon":
-            site.favicon = value
-
-    # Check subdomain uniqueness before flushing
+    # Check subdomain uniqueness BEFORE modifying site object to avoid autoflush issues
+    new_subdomain = update_data.get("subdomain")
     if new_subdomain is not None:
         existing = await db.execute(
             select(Site.id).where(
@@ -217,6 +206,16 @@ async def update_site(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Subdomain '{new_subdomain}' is already taken",
             )
+
+    for field, value in update_data.items():
+        if field == "name":
+            site.name = value
+        elif field == "description":
+            site.description = value
+        elif field == "subdomain":
+            site.subdomain = value
+        elif field == "favicon":
+            site.favicon = value
 
     site.updated_at = datetime.utcnow()
     try:
