@@ -30,6 +30,7 @@ type RemoveDomain = (siteId: string, domainId: string) => Promise<boolean>
 type VerifyDomain = (siteId: string, domainId: string) => Promise<DomainVerifyResult>
 type EnableSsl = (siteId: string, domainId: string) => Promise<{ status: string; message: string }>
 type FetchServerInfo = () => Promise<{ serverIp: string }>
+type UploadFile = (file: File, projectId?: string) => Promise<{ url: string; filename: string }>
 
 let _fetchSites: FetchSites
 let _fetchSite: FetchSite
@@ -49,6 +50,7 @@ let _removeDomain: RemoveDomain
 let _verifyDomain: VerifyDomain
 let _enableSsl: EnableSsl
 let _fetchServerInfo: FetchServerInfo
+let _uploadFile: UploadFile
 
 if (useMock) {
   const m = await import('./mock')
@@ -70,6 +72,7 @@ if (useMock) {
   _verifyDomain = m.verifyDomain
   _enableSsl = m.enableSsl
   _fetchServerInfo = m.fetchServerInfo
+  _uploadFile = m.uploadFile
 } else {
   const r = await import('./real')
   _fetchSites = r.fetchSites
@@ -90,6 +93,7 @@ if (useMock) {
   _verifyDomain = r.verifyDomain
   _enableSsl = r.enableSsl
   _fetchServerInfo = r.fetchServerInfo
+  _uploadFile = r.uploadFile
 }
 
 export const fetchSites = _fetchSites
@@ -110,3 +114,4 @@ export const removeDomain = _removeDomain
 export const verifyDomain = _verifyDomain
 export const enableSsl = _enableSsl
 export const fetchServerInfo = _fetchServerInfo
+export const uploadFile = _uploadFile

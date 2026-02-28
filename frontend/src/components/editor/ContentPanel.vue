@@ -165,8 +165,15 @@
           <!-- Simple value fields -->
         <template v-if="isSimpleField(key, value)">
           <!-- URL fields -->
+          <ImageUploader
+            v-if="isImageField(key as string)"
+            :model-value="value as string"
+            @update:model-value="updateContent(key as string, $event)"
+            :label="formatLabel(key as string)"
+            class="mb-3"
+          />
           <v-text-field
-            v-if="isUrlField(key as string)"
+            v-else-if="isUrlField(key as string)"
             :model-value="value as string"
             @update:model-value="updateContent(key as string, $event)"
             :label="formatLabel(key as string)"
@@ -313,6 +320,7 @@ import { useEditorStore } from '@/stores/editorStore'
 import { useUiStore } from '@/stores/uiStore'
 import { deepClone } from '@/utils/helpers'
 import CrmFormPickerDialog from '@/components/common/CrmFormPickerDialog.vue'
+import ImageUploader from '@/components/common/ImageUploader.vue'
 
 const showCrmFormPicker = ref(false)
 
@@ -367,6 +375,12 @@ function isTypographyKey(key: string): boolean {
 function isUrlField(key: string): boolean {
   const urlKeys = ['url', 'href', 'link', 'src', 'image', 'imageUrl', 'backgroundImage', 'videoUrl']
   return urlKeys.some((k) => key.toLowerCase().includes(k.toLowerCase()))
+}
+
+// Image-specific fields that should show the ImageUploader (with upload button)
+function isImageField(key: string): boolean {
+  const imageKeys = ['image', 'imageUrl', 'backgroundImage', 'photo', 'avatar', 'thumbnail', 'src']
+  return imageKeys.some((k) => key.toLowerCase().includes(k.toLowerCase()))
 }
 
 function isColorField(key: string): boolean {

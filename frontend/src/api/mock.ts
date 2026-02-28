@@ -814,3 +814,10 @@ export async function fetchServerInfo(): Promise<{ serverIp: string }> {
   await delay(100)
   return { serverIp: '127.0.0.1' }
 }
+
+// Mock file upload — returns a local blob URL for preview
+export async function uploadFile(file: File): Promise<{ url: string; filename: string }> {
+  await delay(400)
+  const url = URL.createObjectURL(file)
+  return { url, filename: file.name }
+}

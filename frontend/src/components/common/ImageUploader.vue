@@ -1,15 +1,45 @@
 <template>
   <div class="image-uploader">
-    <v-text-field
-      :model-value="modelValue"
-      @update:model-value="$emit('update:modelValue', $event)"
-      :label="label || 'Image URL'"
-      density="compact"
-      variant="outlined"
-      hide-details
-      prepend-inner-icon="mdi-image"
-      :placeholder="placeholder || 'https://...'"
+    <!-- URL input row with upload button -->
+    <div class="d-flex align-center gap-2">
+      <v-text-field
+        :model-value="modelValue"
+        @update:model-value="$emit('update:modelValue', $event)"
+        :label="label || 'Image URL'"
+        density="compact"
+        variant="outlined"
+        hide-details
+        prepend-inner-icon="mdi-image"
+        :placeholder="placeholder || 'https://...'"
+        class="flex-grow-1"
+      />
+      <v-btn
+        icon
+        variant="tonal"
+        size="small"
+        color="primary"
+        :loading="uploading"
+        :disabled="uploading"
+        title="Upload image from your device"
+        @click="triggerFileInput"
+      >
+        <v-icon size="18">mdi-upload</v-icon>
+      </v-btn>
+    </div>
+
+    <!-- Hidden file input -->
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept="image/*"
+      style="display: none"
+      @change="onFileSelected"
     />
+
+    <!-- Upload error -->
+    <div v-if="uploadError" class="text-caption text-error mt-1">
+      {{ uploadError }}
+    </div>
 
     <!-- Preview -->
     <div v-if="modelValue" class="preview mt-2">
@@ -36,7 +66,7 @@
       </v-btn>
     </div>
 
-    <!-- Sample images for mock -->
+    <!-- Sample images -->
     <div class="mt-2">
       <div class="text-caption text-grey mb-1">Sample Images</div>
       <div class="d-flex flex-wrap gap-1">
@@ -56,15 +86,22 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { ref } from 'vue'
+import { uploadFile } from '@/api/api'
+
+const props = defineProps<{
   modelValue: string
   label?: string
   placeholder?: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
+
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const uploading = ref(false)
+const uploadError = ref('')
 
 const sampleImages = [
   'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800',
@@ -72,6 +109,35 @@ const sampleImages = [
   'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800',
   'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800',
 ]
+
+function triggerFileInput() {
+  uploadError.value = ''
+  fileInputRef.value?.click()
+}
+
+async function onFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  // Reset input so the same file can be selected again
+  input.value = ''
+
+  uploading.value = true
+  uploadError.value = ''
+  try {
+    const { url } = await uploadFile(file)
+    if (url) {
+      emit('update:modelValue', url)
+    } else {
+      uploadError.value = 'Upload failed: no URL returned'
+    }
+  } catch (err: any) {
+    uploadError.value = err?.message || 'Upload failed'
+  } finally {
+    uploading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -102,5 +168,9 @@ const sampleImages = [
 
 .gap-1 {
   gap: 4px;
+}
+
+.gap-2 {
+  gap: 8px;
 }
 </style>

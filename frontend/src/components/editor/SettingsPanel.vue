@@ -95,14 +95,10 @@
       <!-- Background image -->
       <div class="setting-group">
         <div class="text-subtitle-2 mb-2">Background Image</div>
-        <v-text-field
-          :model-value="settings.backgroundImage"
+        <ImageUploader
+          :model-value="settings.backgroundImage || ''"
           @update:model-value="updateSetting('backgroundImage', $event)"
           label="Image URL"
-          density="compact"
-          variant="outlined"
-          hide-details
-          prepend-inner-icon="mdi-image"
         />
       </div>
 
@@ -185,6 +181,7 @@ import { computed, reactive, watch } from 'vue'
 import { useEditorStore } from '@/stores/editorStore'
 import { useUiStore } from '@/stores/uiStore'
 import { DEFAULT_BLOCK_SETTINGS } from '@/types/block'
+import ImageUploader from '@/components/common/ImageUploader.vue'
 
 const editorStore = useEditorStore()
 const uiStore = useUiStore()
