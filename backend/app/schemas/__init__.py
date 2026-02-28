@@ -37,11 +37,22 @@ class BlockSettingsSchema(BaseModel):
 
 
 class BlockSchema(BaseModel):
+    """Used for GET /pages/{page_id}/blocks — returns validated settings structure."""
     id: str
     type: str
     category: str
     content: Dict[str, Any] = {}
-    settings: BlockSettingsSchema = BlockSettingsSchema()
+    settings: Dict[str, Any] = {}  # raw dict so all settings fields are preserved
+    order: int = 0
+
+
+class BlockSchemaSave(BaseModel):
+    """Used inside BlocksSaveRequest — accepts any settings dict to avoid dropping unknown fields."""
+    id: str
+    type: str
+    category: str
+    content: Dict[str, Any] = {}
+    settings: Dict[str, Any] = {}  # must stay Dict — never use BlockSettingsSchema here
     order: int = 0
 
 
@@ -164,7 +175,7 @@ class SiteUpdateRequest(BaseModel):
 # ========== Blocks bulk save ==========
 
 class BlocksSaveRequest(BaseModel):
-    blocks: List[BlockSchema]
+    blocks: List[BlockSchemaSave]  # uses raw dict for settings — preserves minHeight, etc.
 
 
 # ========== Health ==========
