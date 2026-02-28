@@ -20,6 +20,53 @@
 
     <v-divider />
 
+    <!-- Favicon upload -->
+    <div class="pa-3 pb-2">
+      <div class="text-caption text-grey mb-2">Favicon</div>
+      <div class="d-flex align-center gap-2">
+        <img
+          v-if="currentFavicon"
+          :src="currentFavicon"
+          width="28"
+          height="28"
+          style="object-fit: contain; border: 1px solid #e0e0e0; border-radius: 4px; flex-shrink: 0;"
+        />
+        <v-icon v-else size="28" color="grey-lighten-1">mdi-star-four-points-outline</v-icon>
+        <v-btn
+          variant="tonal"
+          size="small"
+          color="primary"
+          :loading="faviconUploading"
+          :disabled="faviconUploading"
+          class="flex-grow-1"
+          @click="triggerFaviconInput"
+        >
+          <v-icon size="16" start>mdi-upload</v-icon>
+          {{ currentFavicon ? 'Replace' : 'Upload favicon' }}
+        </v-btn>
+        <v-btn
+          v-if="currentFavicon"
+          icon
+          variant="text"
+          size="x-small"
+          color="error"
+          @click="removeFavicon"
+        >
+          <v-icon size="16">mdi-delete-outline</v-icon>
+        </v-btn>
+      </div>
+      <div v-if="faviconError" class="text-caption text-error mt-1">{{ faviconError }}</div>
+    </div>
+    <input
+      ref="faviconInputRef"
+      type="file"
+      accept=".ico,.png,.jpg,.jpeg,.svg"
+      style="display: none"
+      @change="onFaviconSelected"
+    />
+
+    <v-divider />
+
     <v-list density="compact" nav>
       <v-list-item
         v-for="page in pages"
@@ -92,10 +139,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useSiteStore } from '@/stores/siteStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useEditorStore } from '@/stores/editorStore'
+import { uploadFile } from '@/api/api'
 import type { IPage } from '@/types/site'
 
 const siteStore = useSiteStore()
@@ -110,6 +158,43 @@ const show = computed({
 })
 
 const pages = computed(() => siteStore.currentSite?.pages || [])
+const currentFavicon = computed(() => siteStore.currentSite?.favicon || '')
+
+// ── Favicon upload ────────────────────────────────────────────────────────────
+const faviconInputRef = ref<HTMLInputElement | null>(null)
+const faviconUploading = ref(false)
+const faviconError = ref('')
+
+function triggerFaviconInput() {
+  faviconError.value = ''
+  faviconInputRef.value?.click()
+}
+
+async function onFaviconSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file || !siteStore.currentSite) return
+  input.value = ''
+  faviconUploading.value = true
+  faviconError.value = ''
+  try {
+    const { url } = await uploadFile(file)
+    if (url) {
+      await siteStore.saveSite({ ...siteStore.currentSite, favicon: url })
+    } else {
+      faviconError.value = 'Upload failed'
+    }
+  } catch (err: any) {
+    faviconError.value = err?.message || 'Upload failed'
+  } finally {
+    faviconUploading.value = false
+  }
+}
+
+async function removeFavicon() {
+  if (!siteStore.currentSite) return
+  await siteStore.saveSite({ ...siteStore.currentSite, favicon: '' })
+}
 
 async function selectPage(pageId: string) {
   siteStore.setCurrentPage(pageId)

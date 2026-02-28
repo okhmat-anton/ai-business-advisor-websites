@@ -28,47 +28,6 @@
           class="mb-3"
         />
 
-        <div class="text-subtitle-2 mb-2">Favicon</div>
-        <div class="d-flex align-center gap-2 mb-1">
-          <v-text-field
-            v-model="form.favicon"
-            label="Favicon URL (.ico, .png, .jpg)"
-            variant="outlined"
-            density="compact"
-            hide-details
-            prepend-inner-icon="mdi-star-four-points"
-            class="flex-grow-1"
-          />
-          <v-btn
-            icon
-            variant="tonal"
-            size="small"
-            color="primary"
-            :loading="faviconUploading"
-            :disabled="faviconUploading"
-            title="Upload favicon from device"
-            @click="triggerFaviconInput"
-          >
-            <v-icon size="18">mdi-upload</v-icon>
-          </v-btn>
-        </div>
-        <input
-          ref="faviconInputRef"
-          type="file"
-          accept=".ico,.png,.jpg,.jpeg,.svg"
-          style="display: none"
-          @change="onFaviconSelected"
-        />
-        <div v-if="faviconError" class="text-caption text-error mb-2">{{ faviconError }}</div>
-        <div v-if="form.favicon" class="d-flex align-center gap-2 mb-3">
-          <img :src="form.favicon" width="32" height="32" style="object-fit: contain; border: 1px solid #e0e0e0; border-radius: 4px;" />
-          <span class="text-caption text-grey">Preview (32×32)</span>
-          <v-btn icon variant="text" size="x-small" @click="form.favicon = ''">
-            <v-icon size="16">mdi-close</v-icon>
-          </v-btn>
-        </div>
-        <div v-else class="mb-3" />
-
         <div class="text-subtitle-2 mb-2">Global Styles</div>
 
         <v-text-field
@@ -128,10 +87,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { useSiteStore } from '@/stores/siteStore'
 import { useUiStore } from '@/stores/uiStore'
-import { uploadFile } from '@/api/api'
 
 const siteStore = useSiteStore()
 const uiStore = useUiStore()
@@ -165,39 +123,6 @@ const show = computed({
     if (!val) uiStore.closeSiteSettings()
   },
 })
-
-// ── Favicon upload ────────────────────────────────────────────────────────────
-const faviconInputRef = ref<HTMLInputElement | null>(null)
-const faviconUploading = ref(false)
-const faviconError = ref('')
-
-function triggerFaviconInput() {
-  faviconError.value = ''
-  faviconInputRef.value?.click()
-}
-
-async function onFaviconSelected(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-  input.value = ''
-
-  faviconUploading.value = true
-  faviconError.value = ''
-  try {
-    const { url } = await uploadFile(file)
-    if (url) {
-      form.favicon = url
-    } else {
-      faviconError.value = 'Upload failed: no URL returned'
-    }
-  } catch (err: any) {
-    faviconError.value = err?.message || 'Upload failed'
-  } finally {
-    faviconUploading.value = false
-  }
-}
-
 
 watch(show, (val) => {
   if (val && siteStore.currentSite) {
