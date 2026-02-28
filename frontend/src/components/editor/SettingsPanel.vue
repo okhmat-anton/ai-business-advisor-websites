@@ -123,9 +123,8 @@
           @update:model-value="updateSetting('backgroundImage', $event)"
           label="Image URL"
         />
-        <!-- Parallax toggle — only meaningful when an image is set -->
+        <!-- Parallax toggle -->
         <v-switch
-          v-if="settings.backgroundImage"
           :model-value="settings.parallax"
           @update:model-value="updateSetting('parallax', $event)"
           label="Parallax Effect"
@@ -134,8 +133,8 @@
           hide-details
           class="mt-2"
         />
-        <div v-if="settings.parallax && settings.backgroundImage" class="text-caption text-grey mt-1">
-          Background scrolls at a slower speed creating a depth effect.
+        <div v-if="settings.parallax" class="text-caption text-grey mt-1">
+          Set a background image above for the effect to be visible.
         </div>
       </div>
 
