@@ -1,13 +1,14 @@
 <template>
   <section class="text-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}`, textAlign: settings.align }">
     <div class="text-container">
-      <h2 v-if="content.title">{{ content.title }}</h2>
-      <p>{{ content.text }}</p>
+      <h2 v-if="content.title" :style="textStyle(content, 'title')">{{ content.title }}</h2>
+      <p :style="textStyle(content, 'text', false)">{{ content.text }}</p>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 </script>
 

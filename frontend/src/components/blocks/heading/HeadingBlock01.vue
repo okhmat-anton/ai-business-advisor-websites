@@ -1,13 +1,14 @@
 <template>
   <section class="heading-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}`, textAlign: settings.align }">
     <div class="heading-container">
-      <component :is="content.level || 'h2'" class="heading-title">{{ content.title }}</component>
-      <p v-if="content.subtitle" class="heading-subtitle">{{ content.subtitle }}</p>
+      <component :is="content.level || 'h2'" class="heading-title" :style="textStyle(content, 'title')">{{ content.title }}</component>
+      <p v-if="content.subtitle" class="heading-subtitle" :style="textStyle(content, 'subtitle')">{{ content.subtitle }}</p>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 </script>
 

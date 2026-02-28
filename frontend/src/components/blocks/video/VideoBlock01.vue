@@ -1,7 +1,7 @@
 <template>
   <section class="video-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
     <div class="video-container">
-      <h2 v-if="content.title" class="video-title">{{ content.title }}</h2>
+      <h2 v-if="content.title" class="video-title" :style="textStyle(content, 'title')">{{ content.title }}</h2>
       <div class="video-wrapper" :style="{ aspectRatio: content.aspectRatio || '16/9' }">
         <iframe :src="content.videoUrl" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
       </div>
@@ -10,6 +10,7 @@
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 </script>
 

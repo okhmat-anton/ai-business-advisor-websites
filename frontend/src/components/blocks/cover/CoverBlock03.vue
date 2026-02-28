@@ -3,8 +3,8 @@
   <div class="cover-block cover-block-03" :style="coverStyle">
     <div class="cover-overlay" :style="{ opacity: content.overlayOpacity || 0.4 }"></div>
     <div class="cover-content">
-      <h1 class="cover-title">{{ content.title }}</h1>
-      <p class="cover-subtitle">{{ content.subtitle }}</p>
+      <h1 class="cover-title" :style="textStyle(content, 'title')">{{ content.title }}</h1>
+      <p class="cover-subtitle" :style="textStyle(content, 'subtitle')">{{ content.subtitle }}</p>
       <a v-if="content.buttonText" :href="content.buttonUrl || '#'" class="cover-btn">
         <v-icon left size="20">mdi-play-circle</v-icon>
         {{ content.buttonText }}
@@ -15,6 +15,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { textStyle } from '@/utils/textStyle'
 
 const props = defineProps<{
   content: Record<string, any>

@@ -3,8 +3,8 @@
   <section class="about-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
     <div class="about-container">
       <div class="about-text">
-        <h2>{{ content.title }}</h2>
-        <p>{{ content.text }}</p>
+        <h2 :style="textStyle(content, 'title')">{{ content.title }}</h2>
+        <p :style="textStyle(content, 'text', false)">{{ content.text }}</p>
       </div>
       <div class="about-image">
         <img :src="content.image" alt="About" />
@@ -14,6 +14,7 @@
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 </script>
 

@@ -1,8 +1,8 @@
 <template>
   <section class="form-block-02" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
     <div class="subscribe-container">
-      <h2>{{ content.title }}</h2>
-      <p>{{ content.subtitle }}</p>
+      <h2 :style="textStyle(content, 'title')">{{ content.title }}</h2>
+      <p :style="textStyle(content, 'subtitle', false)">{{ content.subtitle }}</p>
       <form class="subscribe-form" @submit.prevent="onSubmit">
         <input type="email" :placeholder="content.placeholder || 'Enter your email'" />
         <button type="submit">{{ content.submitText || 'Subscribe' }}</button>
@@ -12,6 +12,7 @@
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 function onSubmit() { alert('Subscribed (mock)') }
 </script>

@@ -1,16 +1,17 @@
 <template>
   <section class="text-block-02" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
     <div class="text-container">
-      <h2 v-if="content.title">{{ content.title }}</h2>
+      <h2 v-if="content.title" :style="textStyle(content, 'title')">{{ content.title }}</h2>
       <div class="two-columns">
-        <p>{{ content.leftText }}</p>
-        <p>{{ content.rightText }}</p>
+        <p :style="textStyle(content, 'leftText', false)">{{ content.leftText }}</p>
+        <p :style="textStyle(content, 'rightText', false)">{{ content.rightText }}</p>
       </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 </script>
 

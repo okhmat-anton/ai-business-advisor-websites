@@ -11,7 +11,7 @@
       <v-btn color="primary" variant="flat" class="mt-4" to="/">Go Home</v-btn>
     </div>
 
-    <div v-else class="public-content">
+    <div v-else class="public-content" :style="fontVars">
       <template v-for="block in sortedBlocks" :key="block.id">
         <BlockRenderer :block="block" />
       </template>
@@ -36,6 +36,15 @@ const error = ref('')
 const sortedBlocks = computed(() =>
   [...editorStore.blocks].sort((a, b) => a.order - b.order)
 )
+
+// Inject CSS custom properties for site fonts
+const fontVars = computed(() => {
+  const fonts = siteStore.currentSite?.globalSettings?.fonts as Record<string, string> | undefined
+  return {
+    '--font-heading': fonts?.heading ? `"${fonts.heading}", sans-serif` : 'inherit',
+    '--font-body': fonts?.body ? `"${fonts.body}", sans-serif` : 'inherit',
+  }
+})
 
 onMounted(async () => {
   try {

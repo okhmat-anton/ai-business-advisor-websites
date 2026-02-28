@@ -40,7 +40,7 @@
 
     <!-- Normal site preview: blocks -->
     <div v-else class="preview-frame" :style="frameStyle">
-      <div class="preview-content">
+      <div class="preview-content" :style="fontVars">
         <template v-for="block in sortedBlocks" :key="block.id">
           <BlockRenderer :block="block" />
         </template>
@@ -69,6 +69,15 @@ const siteStore = useSiteStore()
 const deviceMode = ref('desktop')
 
 const isImported = computed(() => siteStore.currentSite?.isImported === true)
+
+// Inject CSS custom properties for site fonts
+const fontVars = computed(() => {
+  const fonts = siteStore.currentSite?.globalSettings?.fonts as Record<string, string> | undefined
+  return {
+    '--font-heading': fonts?.heading ? `"${fonts.heading}", sans-serif` : 'inherit',
+    '--font-body': fonts?.body ? `"${fonts.body}", sans-serif` : 'inherit',
+  }
+})
 
 // Raw HTML content for imported pages
 const pageHtmlContent = computed(() => siteStore.currentPage?.htmlContent || '')

@@ -6,12 +6,13 @@
           <v-icon>{{ link.icon }}</v-icon>
         </a>
       </div>
-      <p class="copyright">{{ content.copyright }}</p>
+      <p class="copyright" :style="textStyle(content, 'copyright', false)">{{ content.copyright }}</p>
     </div>
   </footer>
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 </script>
 

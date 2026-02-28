@@ -1,6 +1,6 @@
 <template>
   <!-- Editor canvas: the main editing area with all blocks -->
-  <div class="editor-canvas" :style="canvasStyle" @click.self="deselectBlock">
+  <div class="editor-canvas" :style="{ ...canvasStyle, ...fontVars }" @click.self="deselectBlock">
     <!-- Empty state -->
     <div v-if="!sortedBlocks.length" class="empty-state">
       <v-icon size="64" color="grey-lighten-1">mdi-plus-circle-outline</v-icon>
@@ -40,13 +40,26 @@
 import { computed } from 'vue'
 import { useEditorStore } from '@/stores/editorStore'
 import { useUiStore } from '@/stores/uiStore'
+import { useSiteStore } from '@/stores/siteStore'
 import { useResponsive } from '@/composables/useResponsive'
 import BlockWrapper from './BlockWrapper.vue'
 import BlockAddButton from './BlockAddButton.vue'
 
 const editorStore = useEditorStore()
 const uiStore = useUiStore()
+const siteStore = useSiteStore()
 const { currentWidth, currentDevice } = useResponsive()
+
+const sortedBlocks = computed(() => editorStore.sortedBlocks)
+
+// Inject CSS custom properties for site fonts so all block components can use them
+const fontVars = computed(() => {
+  const fonts = siteStore.currentSite?.globalSettings?.fonts as Record<string, string> | undefined
+  return {
+    '--font-heading': fonts?.heading ? `"${fonts.heading}", sans-serif` : 'inherit',
+    '--font-body': fonts?.body ? `"${fonts.body}", sans-serif` : 'inherit',
+  }
+})
 
 const sortedBlocks = computed(() => editorStore.sortedBlocks)
 

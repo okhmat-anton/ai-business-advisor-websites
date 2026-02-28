@@ -3,8 +3,8 @@
     <div class="footer-container">
       <div class="footer-top">
         <div class="footer-brand">
-          <h3>{{ content.logo }}</h3>
-          <p>{{ content.description }}</p>
+          <h3 :style="textStyle(content, 'logo')">{{ content.logo }}</h3>
+          <p :style="textStyle(content, 'description', false)">{{ content.description }}</p>
         </div>
         <div v-for="(col, i) in content.columns" :key="i" class="footer-column">
           <h4>{{ col.title }}</h4>
@@ -16,13 +16,14 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <p>{{ content.copyright }}</p>
+        <p :style="textStyle(content, 'copyright', false)">{{ content.copyright }}</p>
       </div>
     </div>
   </footer>
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 </script>
 

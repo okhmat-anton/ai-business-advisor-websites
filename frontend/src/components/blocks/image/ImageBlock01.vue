@@ -2,12 +2,13 @@
   <section class="image-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}`, textAlign: settings.align }">
     <div class="image-container">
       <img :src="content.image" :alt="content.alt || ''" />
-      <p v-if="content.caption" class="caption">{{ content.caption }}</p>
+      <p v-if="content.caption" class="caption" :style="textStyle(content, 'caption', false)">{{ content.caption }}</p>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 </script>
 

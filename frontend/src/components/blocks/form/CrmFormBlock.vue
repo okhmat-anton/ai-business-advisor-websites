@@ -8,8 +8,8 @@
     }"
   >
     <div class="crm-form-inner">
-      <h2 v-if="content.title" class="crm-form-title">{{ content.title }}</h2>
-      <p v-if="content.subtitle" class="crm-form-subtitle">{{ content.subtitle }}</p>
+      <h2 v-if="content.title" class="crm-form-title" :style="textStyle(content, 'title')">{{ content.title }}</h2>
+      <p v-if="content.subtitle" class="crm-form-subtitle" :style="textStyle(content, 'subtitle', false)">{{ content.subtitle }}</p>
 
       <!-- Embed container: scripts are executed via DOM injection on mount -->
       <div v-if="content.embedCode" ref="embedContainer" class="crm-form-embed" />
@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick } from 'vue'
+import { textStyle } from '@/utils/textStyle'
 
 const props = defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 

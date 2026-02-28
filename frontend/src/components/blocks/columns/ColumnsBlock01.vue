@@ -1,7 +1,7 @@
 <template>
   <section class="columns-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
     <div class="columns-container">
-      <h2 v-if="content.title" class="columns-title">{{ content.title }}</h2>
+      <h2 v-if="content.title" class="columns-title" :style="textStyle(content, 'title')">{{ content.title }}</h2>
       <div class="cards-grid">
         <div v-for="(card, i) in content.cards" :key="i" class="card-item">
           <v-icon size="48" color="#1976D2">{{ card.icon }}</v-icon>
@@ -14,6 +14,7 @@
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 </script>
 

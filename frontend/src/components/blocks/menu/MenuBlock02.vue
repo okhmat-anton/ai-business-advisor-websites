@@ -1,7 +1,7 @@
 <template>
   <nav class="menu-block-02" :style="{ backgroundColor: settings.backgroundColor }">
     <div class="menu-container">
-      <div class="menu-logo">{{ content.logo }}</div>
+      <div class="menu-logo" :style="textStyle(content, 'logo')">{{ content.logo }}</div>
       <div class="menu-links">
         <a v-for="(link, i) in content.links" :key="i" :href="link.url">{{ link.text }}</a>
       </div>
@@ -10,6 +10,7 @@
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 </script>
 

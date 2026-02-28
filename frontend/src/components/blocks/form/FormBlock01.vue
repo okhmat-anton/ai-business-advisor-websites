@@ -1,8 +1,8 @@
 <template>
   <section class="form-block-01" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
     <div class="form-container">
-      <h2 v-if="content.title">{{ content.title }}</h2>
-      <p v-if="content.subtitle" class="form-subtitle">{{ content.subtitle }}</p>
+      <h2 v-if="content.title" :style="textStyle(content, 'title')">{{ content.title }}</h2>
+      <p v-if="content.subtitle" class="form-subtitle" :style="textStyle(content, 'subtitle', false)">{{ content.subtitle }}</p>
       <form class="form-fields" @submit.prevent="onSubmit">
         <div v-for="(field, i) in content.fields" :key="i" class="form-field">
           <label>{{ field.label }}</label>
@@ -16,6 +16,7 @@
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 
 function onSubmit() {

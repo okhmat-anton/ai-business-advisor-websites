@@ -2,8 +2,8 @@
   <!-- About: description with counters -->
   <section class="about-block-02" :style="{ backgroundColor: settings.backgroundColor, padding: `${settings.paddingTop} 0 ${settings.paddingBottom}` }">
     <div class="about-container">
-      <h2>{{ content.title }}</h2>
-      <p class="about-desc">{{ content.text }}</p>
+      <h2 :style="textStyle(content, 'title')">{{ content.title }}</h2>
+      <p class="about-desc" :style="textStyle(content, 'text', false)">{{ content.text }}</p>
       <div class="counters">
         <div v-for="(counter, i) in content.counters" :key="i" class="counter-item">
           <span class="counter-value">{{ counter.value }}</span>
@@ -15,6 +15,7 @@
 </template>
 
 <script setup lang="ts">
+import { textStyle } from '@/utils/textStyle'
 defineProps<{ content: Record<string, any>; settings: Record<string, any> }>()
 </script>
 
