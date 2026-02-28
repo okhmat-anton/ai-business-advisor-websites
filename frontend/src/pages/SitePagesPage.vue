@@ -433,9 +433,50 @@
                   density="compact"
                   hide-details="auto"
                   suffix=".akm-advisor.com"
+                  class="mb-3"
                 />
+
+                <div class="text-subtitle-2 mb-2">Favicon</div>
+                <div class="d-flex align-center gap-2 mb-1">
+                  <v-text-field
+                    v-model="siteFaviconEdit"
+                    label="Favicon URL (.ico, .png, .jpg)"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    prepend-inner-icon="mdi-star-four-points"
+                    class="flex-grow-1"
+                  />
+                  <v-btn
+                    icon
+                    variant="tonal"
+                    size="small"
+                    color="primary"
+                    :loading="faviconUploading"
+                    :disabled="faviconUploading"
+                    title="Upload favicon from device"
+                    @click="triggerFaviconInput"
+                  >
+                    <v-icon size="18">mdi-upload</v-icon>
+                  </v-btn>
+                </div>
+                <input
+                  ref="faviconInputRef"
+                  type="file"
+                  accept=".ico,.png,.jpg,.jpeg,.svg"
+                  style="display: none"
+                  @change="onFaviconSelected"
+                />
+                <div v-if="faviconError" class="text-caption text-error mb-1">{{ faviconError }}</div>
+                <div v-if="siteFaviconEdit" class="d-flex align-center gap-2 mt-1">
+                  <img :src="siteFaviconEdit" width="32" height="32" style="object-fit: contain; border: 1px solid #e0e0e0; border-radius: 4px;" />
+                  <span class="text-caption text-grey">Preview (32×32)</span>
+                  <v-btn icon variant="text" size="x-small" @click="siteFaviconEdit = ''">
+                    <v-icon size="16">mdi-close</v-icon>
+                  </v-btn>
+                </div>
               </v-card-text>
-              <v-card-actions class="pa-4 pt-0">
+              <v-card-actions class="pa-4 pt-2">
                 <v-spacer />
                 <v-btn variant="text" @click="showSettings = false">Cancel</v-btn>
                 <v-btn color="primary" variant="flat" @click="saveSiteSettings">
@@ -642,7 +683,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useSiteStore } from '@/stores/siteStore'
 import type { IPage, IDomain } from '@/types/site'
 import { slugify } from '@/utils/helpers'
-import { addDomain, removeDomain, verifyDomain, enableSsl, fetchServerInfo } from '@/api/api'
+import { addDomain, removeDomain, verifyDomain, enableSsl, fetchServerInfo, uploadFile } from '@/api/api'
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 
@@ -706,6 +747,36 @@ const settingsTab = ref('general')
 const siteNameEdit = ref('')
 const siteDescEdit = ref('')
 const siteSubdomainEdit = ref('')
+const siteFaviconEdit = ref('')
+const faviconUploading = ref(false)
+const faviconError = ref('')
+const faviconInputRef = ref<HTMLInputElement | null>(null)
+
+function triggerFaviconInput() {
+  faviconError.value = ''
+  faviconInputRef.value?.click()
+}
+
+async function onFaviconSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  input.value = ''
+  faviconUploading.value = true
+  faviconError.value = ''
+  try {
+    const { url } = await uploadFile(file)
+    if (url) {
+      siteFaviconEdit.value = url
+    } else {
+      faviconError.value = 'Upload failed'
+    }
+  } catch (err: any) {
+    faviconError.value = err?.message || 'Upload failed'
+  } finally {
+    faviconUploading.value = false
+  }
+}
 
 // Domain management
 const serverIp = ref('')
@@ -741,6 +812,7 @@ watch(() => siteStore.currentSite, (site) => {
     siteNameEdit.value = site.name
     siteDescEdit.value = site.description || ''
     siteSubdomainEdit.value = site.subdomain || ''
+    siteFaviconEdit.value = site.favicon || ''
   }
 }, { immediate: true })
 
@@ -854,6 +926,7 @@ async function saveSiteSettings() {
     name: siteNameEdit.value,
     description: siteDescEdit.value,
     subdomain: siteSubdomainEdit.value,
+    favicon: siteFaviconEdit.value,
   })
   showSettings.value = false
 }
