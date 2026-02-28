@@ -17,7 +17,7 @@ from app.core import settings
 from app.core.mongodb import MongoDB
 from app.core.redis import close_redis
 from app.core.database import engine, Base
-from app.routers import sites, pages, blocks, uploads, auth, logs, admin
+from app.routers import sites, pages, blocks, uploads, auth, logs
 
 # ============================================
 # File-based logging setup
@@ -115,7 +115,6 @@ app.include_router(pages.router, prefix="/api/v1")
 app.include_router(blocks.router, prefix="/api/v1")
 app.include_router(uploads.router, prefix="/api/v1")
 app.include_router(logs.router, prefix="/api/v1")
-app.include_router(admin.router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health")

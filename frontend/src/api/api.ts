@@ -7,7 +7,7 @@
 
 import type { ISite, IPage, IDomain } from '@/types/site'
 import type { IBlock, IBlockTemplate } from '@/types/block'
-import type { DomainVerifyResult, IAdminSettings } from './real'
+import type { DomainVerifyResult } from './real'
 
 const useMock = import.meta.env.VITE_USE_MOCK !== 'false'
 
@@ -30,8 +30,6 @@ type RemoveDomain = (siteId: string, domainId: string) => Promise<boolean>
 type VerifyDomain = (siteId: string, domainId: string) => Promise<DomainVerifyResult>
 type EnableSsl = (siteId: string, domainId: string) => Promise<{ status: string; message: string }>
 type FetchServerInfo = () => Promise<{ serverIp: string }>
-type GetAdminSettings = () => Promise<IAdminSettings>
-type UpdateAdminSettings = (payload: Partial<IAdminSettings>) => Promise<IAdminSettings>
 
 let _fetchSites: FetchSites
 let _fetchSite: FetchSite
@@ -51,8 +49,6 @@ let _removeDomain: RemoveDomain
 let _verifyDomain: VerifyDomain
 let _enableSsl: EnableSsl
 let _fetchServerInfo: FetchServerInfo
-let _getAdminSettings: GetAdminSettings
-let _updateAdminSettings: UpdateAdminSettings
 
 if (useMock) {
   const m = await import('./mock')
@@ -74,8 +70,6 @@ if (useMock) {
   _verifyDomain = m.verifyDomain
   _enableSsl = m.enableSsl
   _fetchServerInfo = m.fetchServerInfo
-  _getAdminSettings = m.getAdminSettings
-  _updateAdminSettings = m.updateAdminSettings
 } else {
   const r = await import('./real')
   _fetchSites = r.fetchSites
@@ -96,8 +90,6 @@ if (useMock) {
   _verifyDomain = r.verifyDomain
   _enableSsl = r.enableSsl
   _fetchServerInfo = r.fetchServerInfo
-  _getAdminSettings = r.getAdminSettings
-  _updateAdminSettings = r.updateAdminSettings
 }
 
 export const fetchSites = _fetchSites
@@ -118,6 +110,3 @@ export const removeDomain = _removeDomain
 export const verifyDomain = _verifyDomain
 export const enableSsl = _enableSsl
 export const fetchServerInfo = _fetchServerInfo
-export const getAdminSettings = _getAdminSettings
-export const updateAdminSettings = _updateAdminSettings
-export type { IAdminSettings } from './real'

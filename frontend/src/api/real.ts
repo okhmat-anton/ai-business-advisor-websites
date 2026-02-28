@@ -118,13 +118,24 @@ export async function publishSite(siteId: string): Promise<boolean> {
 
 // ========== Uploads ==========
 
-export async function uploadFile(file: File): Promise<{ url: string; filename: string }> {
+const EXTERNAL_API_BASE = import.meta.env.VITE_EXTERNAL_APP_URL || 'https://app.akm-advisor.com'
+const UPLOAD_PROJECT_ID = import.meta.env.VITE_UPLOAD_PROJECT_ID || 'site-builder'
+
+export async function uploadFile(file: File, projectId?: string): Promise<{ url: string; filename: string }> {
   const formData = new FormData()
   formData.append('file', file)
-  const { data } = await apiClient.post('/uploads', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
-  return data
+  formData.append('project_id', projectId || UPLOAD_PROJECT_ID)
+
+  // Upload goes directly to the external app API which handles S3 storage
+  const { data } = await apiClient.post(
+    `${EXTERNAL_API_BASE}/api/v1/files/upload`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  // External API returns file metadata; url field may vary
+  const url: string = data.url || data.file_url || data.download_url || data.path || ''
+  const filename: string = data.filename || data.name || file.name
+  return { url, filename }
 }
 
 // ========== Domains ==========
@@ -166,29 +177,3 @@ export async function fetchServerInfo(): Promise<{ serverIp: string }> {
   return data
 }
 
-// ========== Admin Settings ==========
-
-export interface IS3Settings {
-  enabled: boolean
-  bucket: string
-  region: string
-  accessKey: string
-  secretKey: string
-  endpointUrl: string
-  publicUrl: string
-  folder: string
-}
-
-export interface IAdminSettings {
-  s3: IS3Settings
-}
-
-export async function getAdminSettings(): Promise<IAdminSettings> {
-  const { data } = await apiClient.get('/admin/settings')
-  return data
-}
-
-export async function updateAdminSettings(payload: Partial<IAdminSettings>): Promise<IAdminSettings> {
-  const { data } = await apiClient.patch('/admin/settings', payload)
-  return data
-}

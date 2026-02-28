@@ -9,14 +9,6 @@
         </div>
         <v-spacer />
         <v-btn
-          variant="text"
-          prepend-icon="mdi-cog"
-          class="mr-2"
-          @click="$router.push('/admin')"
-        >
-          Admin
-        </v-btn>
-        <v-btn
           variant="outlined"
           prepend-icon="mdi-folder-zip-outline"
           class="mr-3"

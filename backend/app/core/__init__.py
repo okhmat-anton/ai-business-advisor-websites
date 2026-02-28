@@ -55,15 +55,6 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = 100 * 1024 * 1024  # 100MB
     UPLOAD_DIR: str = "/app/uploads"
 
-    # S3 / S3-compatible storage (overridable via admin settings stored in Redis)
-    S3_ENABLED: bool = False
-    S3_BUCKET: str = ""
-    S3_REGION: str = "us-east-1"
-    S3_ACCESS_KEY: str = ""
-    S3_SECRET_KEY: str = ""
-    S3_ENDPOINT_URL: str = ""   # leave empty for real AWS
-    S3_PUBLIC_URL: str = ""     # base URL for public access; auto-built if empty
-    S3_FOLDER: str = "uploads"  # key prefix inside bucket
 
     # Publish
     PUBLISH_DIR: str = "/app/published"
