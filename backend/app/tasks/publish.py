@@ -15,7 +15,7 @@ from app.core import settings
 logger = logging.getLogger(__name__)
 
 
-def publish_site_task(site_id: str, site_name: str, pages_data: list):
+def publish_site_task(site_id: str, site_name: str, pages_data: list, favicon: str = ""):
     """
     Generate static HTML for a published site.
     Called as a FastAPI BackgroundTask.
@@ -24,6 +24,7 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
         site_id: UUID of the site
         site_name: Name of the site
         pages_data: List of dicts with page_id, title, slug
+        favicon: URL to the site favicon image
     """
     logger.info(f"PUBLISH START: site_id={site_id} name='{site_name}' pages={len(pages_data)}")
     try:
@@ -97,7 +98,7 @@ def publish_site_task(site_id: str, site_name: str, pages_data: list):
                     published_at=datetime.utcnow().isoformat(),
                 )
             else:
-                html = _generate_fallback_html(title, site_name, blocks)
+                html = _generate_fallback_html(title, site_name, blocks, favicon=favicon)
 
             # Home page or slug="/" always writes to site root index.html
             if is_home_page or slug == "/":
@@ -138,7 +139,7 @@ def _sanitize_tilda_html(html: str) -> str:
     return html
 
 
-def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
+def _generate_fallback_html(title: str, site_name: str, blocks: list, favicon: str = "") -> str:
     """
     Generate styled static HTML from block data.
     Handles all block types: cover, about, text, heading, image, gallery,
@@ -445,6 +446,7 @@ def _generate_fallback_html(title: str, site_name: str, blocks: list) -> str:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{esc(title)} – {esc(site_name)}</title>
+    {f'<link rel="icon" href="{esc(favicon)}" />' if favicon else ''}
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #212121; line-height: 1.5; }}

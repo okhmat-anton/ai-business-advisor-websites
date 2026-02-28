@@ -299,7 +299,7 @@ async def publish_site(
         for page in site.pages
     ]
     from app.tasks.publish import publish_site_task
-    background_tasks.add_task(publish_site_task, str(site.id), site.name, pages_data)
+    background_tasks.add_task(publish_site_task, str(site.id), site.name, pages_data, site.favicon or "")
     logger.info(
         f"PUBLISH TRIGGERED: site_id={site.id} name='{site.name}' "
         f"pages={len(pages_data)} user={user.user_id}"
