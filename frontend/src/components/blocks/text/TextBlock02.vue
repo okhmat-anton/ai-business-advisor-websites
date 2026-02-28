@@ -3,8 +3,8 @@
     <div class="text-container">
       <h2 v-if="content.title" :style="textStyle(content, 'title')">{{ content.title }}</h2>
       <div class="two-columns">
-        <p :style="textStyle(content, 'leftText', false)">{{ content.leftText }}</p>
-        <p :style="textStyle(content, 'rightText', false)">{{ content.rightText }}</p>
+        <div :style="textStyle(content, 'leftText', false)" v-html="content.leftText" />
+        <div :style="textStyle(content, 'rightText', false)" v-html="content.rightText" />
       </div>
     </div>
   </section>
